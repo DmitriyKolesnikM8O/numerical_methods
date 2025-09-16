@@ -1,69 +1,86 @@
 #include <iostream>
 #include <iomanip>
+#include <vector>
+#include <cmath>
+#include <utility>
+#include <stdexcept>
+#include "Matrix.hpp"
+#include "Vector.hpp"
 
-using namespace std;
-
-int main() {
-    int i, n, k, n1;
-    double z;
-    double eps[50];
-    double et[50];
-    cout << "Введите размер матрицы (n x n): ";
-    cin >> n1;
-    double A[n1][n1];
-    double B[n1];
-    double X[n1];
-    cout << "Введите элементы расширенной матрицы построчно (каждый ряд содержит " << n1 << " элемента матрицы A, затем элемент b):" << endl;
-    for (i = 0; i < n1; i++) {
-        for (k = 0; k < n1; k++) {
-            cin >> A[i][k];
+class Task2 {
+public:
+    static void Do(const Matrix& A, const Vector& B) {
+        int n = A.GetLength();
+        
+        // Проверка на трёхдиагональность
+        if (!isTriDiagonal(A)) {
+            throw std::invalid_argument("Матрица не является трехдиагональной.");
         }
-        cin >> B[i];
+
+        // Прямой ход (вычисление коэффициентов)
+        Vector alpha(n);
+        Vector beta(n);
+        double z;
+
+        alpha.Set(0, -A.Get(0, 1) / A.Get(0, 0));
+        beta.Set(0, B.Get(0) / A.Get(0, 0));
+
+        for (int i = 1; i < n - 1; i++) {
+            z = A.Get(i, i) + A.Get(i, i - 1) * alpha.Get(i - 1);
+            if (std::abs(z) < 1e-9) {
+                 throw std::runtime_error("Матрица вырождена или плохо обусловлена.");
+            }
+            alpha.Set(i, -A.Get(i, i + 1) / z);
+            beta.Set(i, (B.Get(i) - A.Get(i, i - 1) * beta.Get(i - 1)) / z);
+        }
+
+        // Обратный ход (вычисление решения)
+        Vector X(n);
+        z = A.Get(n - 1, n - 1) + A.Get(n - 1, n - 2) * alpha.Get(n - 2);
+        if (std::abs(z) < 1e-9) {
+            throw std::runtime_error("Матрица вырождена или плохо обусловлена.");
+        }
+        X.Set(n - 1, (B.Get(n - 1) - A.Get(n - 1, n - 2) * beta.Get(n - 2)) / z);
+
+        for (int i = n - 2; i >= 0; i--) {
+            X.Set(i, alpha.Get(i) * X.Get(i + 1) + beta.Get(i));
+        }
+
+        std::cout << "\nРешение системы:\n";
+        for (int i = 0; i < n; i++) {
+            std::cout << "x[" << i << "] = " << std::fixed << std::setprecision(6) << X.Get(i) << "\n";
+        }
     }
 
-    // (Опционально) Проверка на трехдиагональность
-    for (i = 0; i < n1; i++) {
-        for (k = 0; k < n1; k++) {
-            if ((k > i + 1 || k < i - 1) && i != k && abs(A[i][k]) > 1e-10) {
-                cout << "Ошибка: матрица не является трехдиагональной!" << endl;
-                return 1;
+private:
+    static bool isTriDiagonal(const Matrix& matrix) {
+        int n = matrix.GetLength();
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (std::abs(i - j) > 1 && std::abs(matrix.Get(i, j)) > 1e-9) {
+                    return false;
+                }
             }
         }
+        return true;
     }
+};
 
-    cout << "Матрица A:" << endl;
-    for (i = 0; i < n1; i++) {
-        for (k = 0; k < n1; k++) {
-            cout << A[i][k] << "\t ";
+int main() {
+    try {
+        Matrix A = get_user_matrix_input();
+        Vector B = get_free_members_vector();
+        
+        if (A.GetLength() != B.GetSize()) {
+            throw std::invalid_argument("Размерность матрицы и вектора должны совпадать.");
         }
-        cout << endl;
+
+        Task2::Do(A, B);
+        
+    } catch (const std::exception& e) {
+        std::cerr << "Произошла ошибка: " << e.what() << std::endl;
+        return 1;
     }
-
-    cout << "Матрица B:" << endl;
-    for (i = 0; i < n1; i++) {
-        cout << B[i] << endl;
-    }
-
-    n = n1 - 1;
-    eps[0] = -A[0][1] / A[0][0];
-    et[0] = B[0] / A[0][0];
-
-    for (i = 1; i < n; i++) {
-        z = A[i][i] + A[i][i - 1] * eps[i - 1];
-        eps[i] = -A[i][i + 1] / z;
-        et[i] = (B[i] - A[i][i - 1] * et[i - 1]) / z;
-    }
-
-    X[n] = (B[n] - A[n][n - 1] * et[n - 1]) / (A[n][n] + A[n][n - 1] * eps[n - 1]);
-
-    for (i = n - 1; i >= 0; i--) {
-        X[i] = eps[i] * X[i + 1] + et[i];
-    }
-
-    cout << "Решение системы:" << endl;
-    for (i = 0; i < n1; i++) {
-        cout << "x[" << setw(1) << i + 1 << "] = " << setw(6) << setprecision(3) << fixed << X[i] << endl;
-    }
-
+    
     return 0;
 }

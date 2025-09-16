@@ -1,160 +1,124 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
-#include <stdexcept>
 #include <cmath>
+#include <utility>
+#include <stdexcept>
+#include "Matrix.hpp"
+#include "Vector.hpp"
 
-using namespace std;
-
-// Функция для вычисления строки верхней треугольной матрицы U с выбором главного элемента
-void urow(vector<vector<float>>& u, vector<vector<float>>& l, vector<vector<float>>& a, vector<int>& p, int i, int n) {
-    int max_row = i;
-    float max_val = abs(a[i][i]);
-
-    // Поиск максимального элемента в столбце i ниже текущей строки
-    for (int k = i + 1; k < n; k++) {
-        if (abs(a[k][i]) > max_val) {
-            max_val = abs(a[k][i]);
-            max_row = k;
+class Task1 {
+public:
+    static void Do(Matrix A, Vector B) {
+        int n = A.GetLength();
+        
+        // LU-разложение с частичным выбором главного элемента
+        Matrix L = Matrix::GetSingularMatrix(n);
+        Matrix U = A;
+        Vector P(n);
+        for (int i = 0; i < n; i++) {
+            P.Set(i, i);
         }
-    }
 
-    // Перестановка строк, если найден больший элемент
-    if (max_row != i) {
-        swap(a[i], a[max_row]);
-        swap(p[i], p[max_row]);
-        if (i > 0) {
-            for (int k = 0; k < i; k++) {
-                swap(l[i][k], l[max_row][k]);
+        for (int k = 0; k < n; k++) {
+            // Поиск главного элемента
+            double max_val = std::abs(U.Get(k, k));
+            int max_row = k;
+            for (int i = k + 1; i < n; i++) {
+                if (std::abs(U.Get(i, k)) > max_val) {
+                    max_val = std::abs(U.Get(i, k));
+                    max_row = i;
+                }
+            }
+
+            // Перестановка строк в U и векторе перестановок P
+            if (max_row != k) {
+                for (int j = 0; j < n; j++) {
+                    double temp_u = U.Get(k, j);
+                    U.Set(k, j, U.Get(max_row, j));
+                    U.Set(max_row, j, temp_u);
+                }
+                double temp_p = P.Get(k);
+                P.Set(k, P.Get(max_row));
+                P.Set(max_row, temp_p);
+
+                // Перестановка строк в L
+                for (int j = 0; j < k; j++) {
+                    double temp_l = L.Get(k, j);
+                    L.Set(k, j, L.Get(max_row, j));
+                    L.Set(max_row, j, temp_l);
+                }
+            }
+
+            // Создание L и U
+            for (int i = k + 1; i < n; i++) {
+                if (std::abs(U.Get(k, k)) < 1e-9) {
+                    throw std::runtime_error("Матрица вырождена или плохо обусловлена.");
+                }
+                double factor = U.Get(i, k) / U.Get(k, k);
+                L.Set(i, k, factor);
+                for (int j = k; j < n; j++) {
+                    U.Set(i, j, U.Get(i, j) - factor * U.Get(k, j));
+                }
             }
         }
-    }
+        
+        std::cout << "\nМатрица U:\n";
+        U.Show();
+        std::cout << "\nМатрица L:\n";
+        L.Show();
 
-    float s;
-    for (int j = i; j < n; j++) {
-        s = 0;
-        for (int k = 0; k < i; k++) {
-            s += u[k][j] * l[i][k];
+        // Перестановка вектора B
+        Vector permuted_B(n);
+        for (int i = 0; i < n; i++) {
+            permuted_B.Set(i, B.Get(static_cast<int>(P.Get(i))));
         }
-        u[i][j] = a[i][j] - s;
-    }
-}
 
-// Функция для вычисления столбца нижней треугольной матрицы L
-void lcol(vector<vector<float>>& u, vector<vector<float>>& l, vector<vector<float>>& a, int j, int n) {
-    float s;
-    int i, k;
-    for (i = j + 1; i < n; i++) {
-        s = 0;
-        for (k = 0; k < i; k++) {
-            s += u[k][j] * l[i][k];
+        // Решение Ly = B'
+        Vector Y(n);
+        for (int i = 0; i < n; i++) {
+            double sum = 0.0;
+            for (int j = 0; j < i; j++) {
+                sum += L.Get(i, j) * Y.Get(j);
+            }
+            Y.Set(i, permuted_B.Get(i) - sum);
         }
-        l[i][j] = (a[i][j] - s) / u[j][j];
-    }
-}
 
-// Функция для вывода матрицы
-void printmat(const vector<vector<float>>& x, int n) {
-    cout << fixed; // Установка фиксированного формата
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            cout << setw(10) << setprecision(3) << x[i][j];
+        // Решение Ux = Y
+        Vector X(n);
+        for (int i = n - 1; i >= 0; i--) {
+            double sum = 0.0;
+            for (int j = i + 1; j < n; j++) {
+                sum += U.Get(i, j) * X.Get(j);
+            }
+            if (std::abs(U.Get(i, i)) < 1e-9) {
+                throw std::runtime_error("Матрица вырождена или плохо обусловлена.");
+            }
+            X.Set(i, (Y.Get(i) - sum) / U.Get(i, i));
         }
-        cout << endl;
+        
+        std::cout << "\nРешение системы:\n";
+        for (int i = 0; i < n; i++) {
+            std::cout << "x[" << i << "] = " << std::fixed << std::setprecision(6) << X.Get(i) << "\n";
+        }
     }
-    cout.unsetf(ios::fixed); // Сброс fixed для последующих выводов, если нужно
-}
-
-// Функция для перестановки вектора b в соответствии с P
-void permute_b(vector<float>& b, const vector<int>& p, int n) {
-    vector<float> temp = b;
-    for (int i = 0; i < n; i++) {
-        b[i] = temp[p[i]];
-    }
-}
+};
 
 int main() {
-    int n;
-    cout << "Введите размер матрицы (n x n): ";
-    cin >> n;
+    try {
+        Matrix A = get_user_matrix_input();
+        Vector B = get_free_members_vector();
+        
+        if (A.GetLength() != B.GetSize()) {
+            throw std::invalid_argument("Размерность матрицы и вектора должны совпадать.");
+        }
 
-    if (n <= 0) {
-        cout << "Ошибка: размер матрицы должен быть положительным." << endl;
+        Task1::Do(A, B);
+        
+    } catch (const std::exception& e) {
+        std::cerr << "Произошла ошибка: " << e.what() << std::endl;
         return 1;
     }
-
-    // Динамическое выделение векторов
-    vector<vector<float>> a(n, vector<float>(n, 0.0));
-    vector<vector<float>> l(n, vector<float>(n, 0.0));
-    vector<vector<float>> u(n, vector<float>(n, 0.0));
-    vector<float> b(n, 0.0);
-    vector<float> x(n, 0.0);
-    vector<float> v(n, 0.0);
-    vector<int> p(n); // Вектор перестановок
-
-    // Инициализация диагонали L и вектора перестановок
-    for (int i = 0; i < n; i++) {
-        l[i][i] = 1.0;
-        p[i] = i; // Изначально тождественная перестановка
-    }
-
-    cout << "Введите элементы расширенной матрицы построчно (каждый ряд содержит " << n << " элемента матрицы A, затем элемент b):" << endl;
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            cin >> a[i][j];
-        }
-        cin >> b[i];
-    }
-
-    // LU разложение с выбором главного элемента
-    for (int m = 0; m < n; m++) {
-        urow(u, l, a, p, m, n);
-        if (abs(u[m][m]) < 1e-6) {
-            cout << "Ошибка: нулевой элемент на диагонали U[" << m << "][" << m << "]. Матрица может быть вырожденной." << endl;
-            return 1;
-        }
-        if (m < n - 1) {
-            lcol(u, l, a, m, n);
-        }
-    }
-
-    // Перестановка вектора b в соответствии с перестановками
-    permute_b(b, p, n);
-
-    cout << setw(14) << "Матрица U:" << endl;
-    printmat(u, n);
-    cout << endl;
-    cout << setw(14) << "Матрица L:" << endl;
-    printmat(l, n);
-
-    // Решение системы: Ly = b
-    for (int i = 0; i < n; i++) {
-        float s = 0;
-        for (int j = 0; j < i; j++) {
-            s += l[i][j] * v[j];
-        }
-        v[i] = b[i] - s;
-    }
-
-    // Решение системы: Ux = y
-    for (int i = n - 1; i >= 0; i--) {
-        float s = 0;
-        for (int j = i + 1; j < n; j++) {
-            s += u[i][j] * x[j];
-        }
-        if (abs(u[i][i]) < 1e-6) {
-            cout << "Ошибка: нулевой элемент на диагонали U[" << i << "][" << i << "]" << endl;
-            return 1;
-        }
-        x[i] = (v[i] - s) / u[i][i];
-    }
-
-    cout << fixed; // Установка фиксированного формата для вывода решения
-    cout << "Решение системы:" << endl;
-    for (int i = 0; i < n; i++) {
-        cout << "x[" << setw(1) << i + 1 << "] = " << setw(6) << setprecision(3) << x[i] << endl;
-    }
-    cout.unsetf(ios::fixed); // Сброс fixed
-
+    
     return 0;
 }

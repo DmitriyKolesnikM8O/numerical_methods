@@ -1,108 +1,105 @@
 #include <iostream>
 #include <iomanip>
 #include <cmath>
+#include <stdexcept>
+#include "Matrix.hpp"
+#include "Vector.hpp"
 
-using namespace std;
+class Task3 {
+public:
+    static void Do(const Matrix& A, const Vector& B, double epsilon) {
+        int n = A.GetLength();
+        
+        // Проверка на диагональное преобладание (достаточное условие сходимости)
+        if (!isDiagonallyDominant(A)) {
+            std::cerr << "Внимание: Матрица не обладает свойством диагонального преобладания. Метод может не сойтись." << std::endl;
+        }
 
-// Решение СЛАУ методом итераций
-double* iter(double** a, double* y, int n) {
-    double* res = new double[n];
-    int i, j;
+        Vector X_current(n);
+        Vector X_next(n);
 
-    // Инициализация начального приближения
-    for (i = 0; i < n; i++) {
-        res[i] = y[i] / a[i][i];
+        // Начальное приближение: X(0) = B / Aii
+        for (int i = 0; i < n; i++) {
+            if (std::abs(A.Get(i, i)) < 1e-9) {
+                throw std::runtime_error("Диагональный элемент близок к нулю. Невозможно выполнить итерации.");
+            }
+            X_current.Set(i, B.Get(i) / A.Get(i, i));
+        }
+
+        int k = 0;
+        double error;
+        do {
+            for (int i = 0; i < n; i++) {
+                double sum = 0.0;
+                for (int j = 0; j < n; j++) {
+                    if (i != j) {
+                        sum += A.Get(i, j) * X_current.Get(j);
+                    }
+                }
+                X_next.Set(i, (B.Get(i) - sum) / A.Get(i, i));
+            }
+
+            error = 0.0;
+            for (int i = 0; i < n; i++) {
+                double diff = std::abs(X_next.Get(i) - X_current.Get(i));
+                if (diff > error) {
+                    error = diff;
+                }
+                X_current.Set(i, X_next.Get(i));
+            }
+            k++;
+
+            std::cout << "Error: " << error << "\n";
+            for (int i = 0; i < n; i++) {
+                std::cout << "x[" << i << "] = " << std::fixed << std::setprecision(6) << X_current.Get(i) << "\n";
+            }
+
+            std::cout << "Press Enter to continue...\n";
+            std::cin.get();
+
+        } while (error > epsilon);
+
+        std::cout << "\nРешение системы (за " << k << " итераций):\n";
+        for (int i = 0; i < n; i++) {
+            std::cout << "x[" << i << "] = " << std::fixed << std::setprecision(6) << X_current.Get(i) << "\n";
+        }
     }
 
-    double eps = 0.0001;
-    double* Xn = new double[n];
-    bool flag;
-
-    do {
-        for (i = 0; i < n; i++) {
-            Xn[i] = y[i] / a[i][i];
-            for (j = 0; j < n; j++) {
-                if (i == j)
-                    continue;
-                else {
-                    Xn[i] -= a[i][j] / a[i][i] * res[j];
+private:
+    static bool isDiagonallyDominant(const Matrix& matrix) {
+        int n = matrix.GetLength();
+        for (int i = 0; i < n; i++) {
+            double diagonal_val = std::abs(matrix.Get(i, i));
+            double sum_off_diagonal = 0.0;
+            for (int j = 0; j < n; j++) {
+                if (i != j) {
+                    sum_off_diagonal += std::abs(matrix.Get(i, j));
                 }
             }
-        }
-
-        flag = true;
-        for (i = 0; i < n; i++) {
-            if (abs(Xn[i] - res[i]) > eps) {
-                flag = false;
-                break;
+            if (diagonal_val < sum_off_diagonal) {
+                return false;
             }
         }
-
-        for (i = 0; i < n; i++) {
-            res[i] = Xn[i];
-        }
-
-    } while (!flag); // Продолжаем, пока не достигнута точность
-
-    delete[] Xn; // Освобождение памяти
-    return res;
-}
+        return true;
+    }
+};
 
 int main() {
-    setlocale(LC_ALL, "Russian");
-    double** a;
-    double* y;
-    double* x;
-    int n, i, j;
-
-    cout << "Введите размер матрицы (n x n): ";
-    cin >> n;
-
-    y = new double[n];
-    a = new double* [n];
-    for (i = 0; i < n; i++) {
-        a[i] = new double[n];
-    }
-
-    cout << "Введите элементы расширенной матрицы построчно (каждый ряд содержит " << n << " элемента матрицы A, затем элемент b):" << endl;
-    for (i = 0; i < n; i++) {
-        for (j = 0; j <= n; j++) {
-            if (j != n) {
-                cin >> a[i][j];
-            }
-            else {
-                cin >> y[i];
-            }
+    try {
+        Matrix A = get_user_matrix_input();
+        Vector B = get_free_members_vector();
+        double epsilon = get_user_epsilon();
+        
+        if (A.GetLength() != B.GetSize()) {
+            throw std::invalid_argument("Размерность матрицы и вектора должны совпадать.");
         }
+
+        Task3::Do(A, B, epsilon);
+        
+    } catch (const std::exception& e) {
+        std::cerr << "Произошла ошибка: " << e.what() << std::endl;
+        return 1;
     }
-
-    cout << "Matrix A:" << endl;
-    for (i = 0; i < n; i++) {
-        for (j = 0; j < n; j++) {
-            cout << a[i][j] << "\t ";
-        }
-        cout << endl;
-    }
-
-    cout << "Matrix B:" << endl;
-    for (i = 0; i < n; i++) {
-        cout << y[i] << endl;
-    }
-
-    x = iter(a, y, n);
-
-    cout << "Решение системы:" << endl;
-    for (i = 0; i < n; i++) {
-        cout << "x[" << setw(1) << i + 1 << "] = " << setw(6) << setprecision(3) << fixed << x[i] << endl;
-    }
-
-    // Освобождение памяти
-    for (i = 0; i < n; i++) {
-        delete[] a[i];
-    }
-    delete[] a;
-    delete[] y;
-    delete[] x;
-
+    
     return 0;
 }

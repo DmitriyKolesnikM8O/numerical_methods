@@ -1,0 +1,204 @@
+#ifndef MATRIX_H
+#define MATRIX_H
+
+#include "Vector.hpp"
+#include <vector>
+#include <utility>
+#include <stdexcept>
+#include <iostream>
+#include <cmath>
+#include <iomanip>
+
+
+class Matrix {
+private:
+    int n;
+    std::vector<std::vector<double>> data;
+    
+public:
+    Matrix(int size) : n(size), data(size, std::vector<double>(size, 0.0)) {}
+
+    Matrix(const Matrix& other) : n(other.n), data(other.data) {}
+
+    double Get(int i, int j) const {
+        if (i < 0 || i >= n || j < 0 || j >= n) throw std::out_of_range("Matrix index out of range");
+        return data[i][j];
+    }
+
+    void Set(int i, int j, double value) {
+        if (i < 0 || i >= n || j < 0 || j >= n) throw std::out_of_range("Matrix index out of range");
+        data[i][j] = value;
+    }
+
+    int GetLength() const { return n; }
+
+    int GetHeight() const { return n; }
+
+    Vector GetColumn(int k) const {
+        if (k < 0 || k >= n) throw std::out_of_range("Column index out of range");
+        Vector column(n);
+        for (int i = 0; i < n; i++) {
+            column.Set(i, data[i][k]);
+        }
+        return column;
+    }
+
+    void Show() const {
+        std::cout << std::fixed << std::setprecision(4); 
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                std::cout << std::setw(12) << data[i][j];
+            }
+            std::cout << "\n";
+        }
+        std::cout.unsetf(std::ios::fixed);
+    }
+
+    static Matrix GetSingularMatrix(int size) {
+        Matrix result(size);
+        for (int i = 0; i < size; i++) {
+            result.Set(i, i, 1.0);
+        }
+        return result;
+    }
+
+    Matrix operator+(const Matrix& other) const {
+        if (n != other.n) throw std::invalid_argument("Matrix dimensions must match");
+        Matrix result(n);
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                result.Set(i, j, data[i][j] + other.data[i][j]);
+            }
+        }
+        return result;
+    }
+
+    Matrix operator*(double scalar) const {
+        Matrix result(n);
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                result.Set(i, j, data[i][j] * scalar);
+            }
+        }
+        return result;
+    }
+
+    Matrix operator*(const Matrix& other) const {
+        if (n != other.n) throw std::invalid_argument("Matrix dimensions must match");
+        Matrix result(n);
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                double sum = 0.0;
+                for (int k = 0; k < n; k++) {
+                    sum += data[i][k] * other.data[k][j];
+                }
+                result.Set(i, j, sum);
+            }
+        }
+        return result;
+    }
+
+    std::pair<Matrix, Matrix> QR() {
+        Matrix R = *this;
+        Matrix Q = GetSingularMatrix(n);
+        Vector v(n);
+
+        for (int k = 0; k < n - 1; k++) {
+            for (int i = 0; i < n; i++) {
+                if (i < k) {
+                    v.Set(i, 0.0);
+                } else if (i == k) {
+                    double norma = 0.0;
+                    Vector column = R.GetColumn(k);
+                    for (int j = k; j < n; j++) {
+                        norma += column.Get(j) * column.Get(j);
+                    }
+                    norma = std::sqrt(norma);
+                    v.Set(i, R.Get(i, i) + std::copysign(norma, R.Get(i, i)));
+                } else if (i > k) {
+                    v.Set(i, R.Get(i, k));
+                }
+            }
+
+            Matrix temp(n);
+            double p = 0.0;
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < n; j++) {
+                    temp.Set(i, j, v.Get(i) * v.Get(j));
+                }
+                p += v.Get(i) * v.Get(i);
+            }
+
+            p = -2.0 / p;
+            Matrix H = GetSingularMatrix(n) + (temp * p);
+
+            R = H * R;
+            Q = Q * H;
+        }
+
+        return std::make_pair(Q, R);
+    }
+};
+
+Matrix get_user_matrix_input() { 
+    size_t rows;
+    std::cout << "Введите размерность матрицы: "; 
+    while (!(std::cin >> rows) || rows <= 0) { 
+        std::cout << "Некорректный ввод. Пожалуйста, введите целое число больше 0: "; 
+        std::cin.clear(); 
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
+    } 
+    Matrix matrix(rows);
+    std::cout << "Введите элементы матрицы (" << rows << "x" << rows << "):\n"; 
+    for (size_t i = 0; i < rows; ++i) { 
+        for (size_t j = 0; j < rows; ++j) { 
+            std::cout << "Элемент [" << i << "][" << j << "]: "; 
+            double n;
+            while (!(std::cin >> n)) {
+                
+                std::cout << "Некорректный ввод. Пожалуйста, введите число: "; 
+                std::cin.clear(); 
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
+            }
+            matrix.Set(i, j, n); 
+        } 
+    }
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    return matrix;
+}
+
+Vector get_free_members_vector() {
+    size_t rows;
+    std::cout << "Введите размерность вектора: ";
+    while (!(std::cin >> rows) || rows <= 0) { 
+        std::cout << "Некорректный ввод. Пожалуйста, введите целое число больше 0: "; 
+        std::cin.clear(); 
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
+    }
+    Vector vector(rows);
+    std::cout << "Введите элементы вектора (" << rows << "):\n";
+    for (size_t i = 0; i < rows; ++i) {
+        std::cout << "Элемент [" << i << "]: ";
+        double n;
+        while (!(std::cin >> n)) {
+             std::cout << "Некорректный ввод. Пожалуйста, введите число: "; 
+                std::cin.clear(); 
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
+        }
+        vector.Set(i, n);
+    }
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    return vector;
+}
+
+double get_user_epsilon() { 
+    double epsilon; std::cout << "\nВведите точность вычислений (например, 1e-6): "; 
+    while (!(std::cin >> epsilon) || epsilon <= 0) { 
+        std::cout << "Некорректный ввод. Пожалуйста, введите положительное число: "; 
+        std::cin.clear(); std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
+    } 
+    return epsilon; 
+}
+
+
+#endif //MATRIX_H
