@@ -3,6 +3,7 @@
 #include <vector>
 #include <cmath>
 #include <utility>
+#include <fstream>
 #include <stdexcept>
 #include "Matrix.hpp"
 #include "Vector.hpp"
@@ -48,7 +49,7 @@ public:
 
         std::cout << "\nРешение системы:\n";
         for (int i = 0; i < n; i++) {
-            std::cout << "x[" << i << "] = " << std::fixed << std::setprecision(6) << X.Get(i) << "\n";
+            std::cout << "x[" << i + 1 << "] = " << std::fixed << std::setprecision(6) << X.Get(i) << "\n";
         }
     }
 
@@ -66,11 +67,30 @@ private:
     }
 };
 
-int main() {
+int main(int argc, char* argv[]) {
     try {
-        Matrix A = get_user_matrix_input();
-        Vector B = get_free_members_vector();
-        
+        Matrix A;
+        Vector B;
+        std::istream* input_stream = &std::cin;
+        std::ifstream file_stream;
+        if(argc > 1 && std::string(argv[1]) == "-file") {
+            std::string filename = "./tasks/1/1.2/1_2.txt";
+            if (argc > 2) {
+                filename = argv[2];
+            }
+            file_stream.open(filename);
+            if (!file_stream.is_open()) {
+                throw std::runtime_error("Не удалось открыть файл " + filename);
+            }
+            input_stream = &file_stream;
+            std::cout << "Чтение данных из файла " << filename << std::endl;
+            A = get_user_matrix_input_file(*input_stream);
+            B = get_free_members_vector_file(*input_stream);
+        } else {
+            std::cout << "Чтение данных с консоли" << std::endl;
+            A = get_user_matrix_input_rows();
+            B = get_free_members_vector_rows();
+        }        
         if (A.GetLength() != B.GetSize()) {
             throw std::invalid_argument("Размерность матрицы и вектора должны совпадать.");
         }

@@ -11,15 +11,16 @@ private:
     std::vector<double> data;
 
 public:
+    Vector() : size(0), data(0, 0.0) {}
     Vector(int n) : size(n), data(n, 0.0) {}
 
     double Get(int i) const {
-        if (i < 0 || i >= size) throw std::out_of_range("Vector index out of range");
+        if (i < 0 || i >= size) throw std::out_of_range("Индекс не в границах вектора");
         return data[i];
     }
 
     void Set(int i, double value) {
-        if (i < 0 || i >= size) throw std::out_of_range("Vector index out of range");
+        if (i < 0 || i >= size) throw std::out_of_range("Индекс не в границах вектора");
         data[i] = value;
     }
 

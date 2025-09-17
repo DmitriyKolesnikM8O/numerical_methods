@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <fstream>
 #include <utility>
 #include <stdexcept>
 #include "Vector.hpp"
@@ -17,15 +18,15 @@ public:
 
             A = R * Q;
             
-            std::cout << "\nIteration " << k << ":\nMatrix A:\n";
-            A.Show();
+            // std::cout << "\nИтерация " << k << ":\nМатрица A:\n";
+            // A.Show();
             // std::cout << "Press Enter to continue...\n";
             // std::cin.get();
             k++;
             
         } while (!Finish(A, epsilon));
 
-        std::cout << "\nMatrix A:\n";
+        std::cout << "\nМатрица A:\n";
         A.Show();
     }
 
@@ -40,7 +41,7 @@ private:
             if (sum2 > epsilon) {
                 return false;
             } else if (sum1 <= epsilon) {
-                std::cout << "lambda" << j << ": " << matrix.Get(j, j) << "\n";
+                std::cout << "Лямбда" << j << ": " << matrix.Get(j, j) << "\n";
             } else if (sum1 > epsilon) {
                 if (j == 0) return false;
 
@@ -52,8 +53,8 @@ private:
                 double x = (aii + ajj) / 2.0;
                 double y = std::sqrt(-(aii + ajj) * (aii + ajj) + 4 * (aii * ajj - aij * aji)) / 2.0;
 
-                std::cout << "lambda" << j << ": " << x << " + " << y << "i\n";
-                std::cout << "lambda" << (j + 1) << ": " << x << " - " << y << "i\n";
+                std::cout << "Лямбда " << j << ": " << x << " + " << y << "i\n";
+                std::cout << "Лямбда " << (j + 1) << ": " << x << " - " << y << "i\n";
                 j++;
             }
         }
@@ -70,14 +71,38 @@ private:
     }
 };
 
-int main() {
-    Matrix A = get_user_matrix_input();
-    double epsilon = get_user_epsilon();
-
-    // A.Set(0, 0, 1.0); A.Set(0, 1, 3.0); A.Set(0, 2, 1.0);
-    // A.Set(1, 0, 1.0); A.Set(1, 1, 1.0); A.Set(1, 2, 4.0);
-    // A.Set(2, 0, 4.0); A.Set(2, 1, 3.0); A.Set(2, 2, 1.0);
-
-    Task5::Do(A, epsilon);
+int main(int argc, char* argv[]) {
+    try
+    {
+        Matrix A;
+        double epsilon;
+        std::istream* input_stream = &std::cin;
+        std::ifstream file_stream;
+        
+        if(argc > 1 && std::string(argv[1]) == "-file") {
+            std::string filename = "./tasks/1/1.5/1_5.txt";
+            if (argc > 2) {
+                filename = argv[2];
+            }
+            file_stream.open(filename);
+            if (!file_stream.is_open()) {
+                throw std::runtime_error("Не удалось открыть файл " + filename);
+            }
+            input_stream = &file_stream;
+            std::cout << "Чтение данных из файла " << filename << std::endl;
+            A = get_user_matrix_input_file(*input_stream);
+            epsilon = get_user_epsilon_file(*input_stream);
+        } else {
+            std::cout << "Чтение данных с консоли" << std::endl;
+            A = get_user_matrix_input_rows();
+            epsilon = get_user_epsilon();
+        }
+        Task5::Do(A, epsilon);
+        
+    } catch (const std::exception& e) {
+        std::cerr << "Произошла ошибка: " << e.what() << std::endl;
+        return 1;
+    }
     return 0;
+    
 }
