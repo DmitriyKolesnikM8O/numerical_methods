@@ -13,69 +13,32 @@ public:
     static void Do(Matrix A, Vector B) {
         int n = A.GetLength();
         
-        // LU-разложение с частичным выбором главного элемента
-        Matrix L = Matrix::GetSingularMatrix(n);
-        Matrix U = A;
-        Vector P(n);
-        for (int i = 0; i < n; i++) {
-            P.Set(i, i);
-        }
+        Matrix L, U;
+        Vector P;
+        int permutations;
+        std::tie(L, U, P, permutations) = A.LU();
 
-        for (int k = 0; k < n; k++) {
-            // Поиск главного элемента
-            double max_val = std::abs(U.Get(k, k));
-            int max_row = k;
-            for (int i = k + 1; i < n; i++) {
-                if (std::abs(U.Get(i, k)) > max_val) {
-                    max_val = std::abs(U.Get(i, k));
-                    max_row = i;
-                }
-            }
-
-            // Перестановка строк в U и векторе перестановок P
-            if (max_row != k) {
-                for (int j = 0; j < n; j++) {
-                    double temp_u = U.Get(k, j);
-                    U.Set(k, j, U.Get(max_row, j));
-                    U.Set(max_row, j, temp_u);
-                }
-                double temp_p = P.Get(k);
-                P.Set(k, P.Get(max_row));
-                P.Set(max_row, temp_p);
-
-                // Перестановка строк в L
-                for (int j = 0; j < k; j++) {
-                    double temp_l = L.Get(k, j);
-                    L.Set(k, j, L.Get(max_row, j));
-                    L.Set(max_row, j, temp_l);
-                }
-            }
-
-            // Создание L и U
-            for (int i = k + 1; i < n; i++) {
-                if (std::abs(U.Get(k, k)) < 1e-9) {
-                    throw std::runtime_error("Матрица вырождена или плохо обусловлена.");
-                }
-                double factor = U.Get(i, k) / U.Get(k, k);
-                L.Set(i, k, factor);
-                for (int j = k; j < n; j++) {
-                    U.Set(i, j, U.Get(i, j) - factor * U.Get(k, j));
-                }
-            }
-        }
-        
         std::cout << "\nМатрица U:\n";
         U.Show();
         std::cout << "\nМатрица L:\n";
         L.Show();
 
-        // Перестановка вектора B
+        double det = A.Determinant();
+        std::cout << "\nОпределитель матрицы: " << std::fixed << std::setprecision(6) << det << "\n";
+
+        Matrix inverse_A = A.Inverse();
+        std::cout << "\nОбратная матрица:\n";
+        inverse_A.Show();
+        
+        //реализация решения Ax = b с помощью LU
+
+        //переставляем исходный b
         Vector permuted_B(n);
         for (int i = 0; i < n; i++) {
             permuted_B.Set(i, B.Get(static_cast<int>(P.Get(i))));
         }
 
-        // Решение Ly = B'
+        //прямая подстановка: Ly = Pb
         Vector Y(n);
         for (int i = 0; i < n; i++) {
             double sum = 0.0;
@@ -85,7 +48,8 @@ public:
             Y.Set(i, permuted_B.Get(i) - sum);
         }
 
-        // Решение Ux = Y
+
+        //обратная подстановка: Ux = y
         Vector X(n);
         for (int i = n - 1; i >= 0; i--) {
             double sum = 0.0;
@@ -107,32 +71,6 @@ public:
 
 int main(int argc, char* argv[]) {
     try {
-        // Matrix A;
-        // double epsilon;
-        // std::istream* input_stream = &std::cin;
-        // std::ifstream file_stream;
-        
-        // if(argc > 1 && std::string(argv[1]) == "-file") {
-        //     std::string filename = "./tasks/1/1.5/1_5.txt";
-        //     if (argc > 2) {
-        //         filename = argv[2];
-        //     }
-        //     file_stream.open(filename);
-        //     if (!file_stream.is_open()) {
-        //         throw std::runtime_error("Не удалось открыть файл " + filename);
-        //     }
-        //     input_stream = &file_stream;
-        //     std::cout << "Чтение данных из файла " << filename << std::endl;
-        //     A = get_user_matrix_input_file(*input_stream);
-        //     epsilon = get_user_epsilon_file(*input_stream);
-        // } else {
-        //     std::cout << "Чтение данных с консоли" << std::endl;
-        //     A = get_user_matrix_input_rows();
-        //     epsilon = get_user_epsilon();
-        // }
-        // Task5::Do(A, epsilon);  
-
-
         Matrix A;
         Vector B;
         std::istream* input_stream = &std::cin;

@@ -9,7 +9,7 @@
 #include <cmath>
 #include <iomanip>
 
-
+//всегда квадратная
 class Matrix {
 private:
     int n;
@@ -22,7 +22,7 @@ public:
     Matrix(const Matrix& other) : n(other.n), data(other.data) {}
 
     Matrix& operator=(const Matrix& other) {
-        if (this != &other) { // Проверка на самоприсваивание
+        if (this != &other) {
             n = other.n;
             data = other.data;
         }
@@ -63,6 +63,75 @@ public:
         std::cout.unsetf(std::ios::fixed);
     }
 
+    double Determinant() const {
+        Matrix L, U;
+        Vector P;
+        int permutations;
+        std::tie(L, U, P, permutations) = this->LU();
+        
+        double det = 1.0;
+        for (int i = 0; i < n; i++) {
+            det *= U.Get(i, i);
+        }
+        
+        if (permutations % 2 != 0) {
+            det = -det;
+        }
+        
+        return det;
+    }
+
+    Matrix Inverse() const {
+        Matrix L, U;
+        Vector P;
+        int permutations;
+        std::tie(L, U, P, permutations) = this->LU();
+        
+        Matrix inverse(n);
+
+        //на каждой итерации вычисляем j столбец обратной матрицы
+        for (int j = 0; j < n; j++) {
+            Vector e(n);
+            e.Set(j, 1.0); //столбец единичной матрицы
+
+            //переставляем e согласно вектору перестановок
+            Vector permuted_e(n);
+            for (int i = 0; i < n; i++) {
+                permuted_e.Set(i, e.Get(static_cast<int>(P.Get(i))));
+            }
+
+            //прямая подстановка: Ly = b (b = permutated_e)
+            Vector Y(n);
+            for (int i = 0; i < n; i++) {
+                double sum = 0.0;
+                for (int k = 0; k < i; k++) {
+                    sum += L.Get(i, k) * Y.Get(k);
+                }
+                Y.Set(i, permuted_e.Get(i) - sum);
+            }
+
+            //обратная подстановка: Ux = y
+            Vector X(n);
+            for (int i = n - 1; i >= 0; i--) {
+                double sum = 0.0;
+                for (int k = i + 1; k < n; k++) {
+                    sum += U.Get(i, k) * X.Get(k);
+                }
+                if (std::abs(U.Get(i, i)) < 1e-9) {
+                    throw std::runtime_error("Матрица вырождена или плохо обусловлена. Обратная матрица не существует.");
+                }
+                X.Set(i, (Y.Get(i) - sum) / U.Get(i, i));
+            }
+            
+            for (int i = 0; i < n; i++) {
+                inverse.Set(i, j, X.Get(i));
+            }
+        }
+        
+        return inverse;
+    }
+
+    //возвращает единичную матрицу
     static Matrix GetSingularMatrix(int size) {
         Matrix result(size);
         for (int i = 0; i < size; i++) {
@@ -146,6 +215,76 @@ public:
         }
 
         return std::make_pair(Q, R);
+    }
+
+    /*
+    возврат: (L, U, P, permutations)
+    P - вектор индексов. Например: [2, 1, 0] -> 0 строка в конечной матрице изначально была второй и т.д.
+    permutations - для определителя. det(A) = (-1)^k * det(U)
+    принцип работы: 
+            - проходим по всем столбцам
+            - ищем главный элемент (если не диагональ, то перестановка)
+            - для каждой строки под диагональю вычисляем кэф и обнуляем
+    */
+    std::tuple<Matrix, Matrix, Vector, int> LU() const {
+        Matrix temp = *this;
+        Matrix L = GetSingularMatrix(n);
+        Vector P(n);
+        int permutations = 0;
+        for (int i = 0; i < n; i++) {
+            P.Set(i, i);
+        }
+
+        //цикл по столбцам
+        for (int k = 0; k < n; k++) {
+            double max_val = std::abs(temp.Get(k, k));
+            int max_row = k;
+            //ищем настоящий главный элемент в столбце со следующей строки
+            for (int i = k + 1; i < n; i++) {
+                if (std::abs(temp.Get(i, k)) > max_val) {
+                    max_val = std::abs(temp.Get(i, k));
+                    max_row = i;
+                }   
+            }
+
+            //если нашли главный элемент не на диагонали
+            if (max_row != k) {
+                //цикл для перестановки строк матриц поэлементно
+                for (int j = 0; j < n; j++) {
+                    double temp_u = temp.Get(k, j);
+                    temp.Set(k, j, temp.Get(max_row, j));
+                    temp.Set(max_row, j, temp_u);
+                }
+                //переставляем инфу в векторе перестановок
+                double temp_p = P.Get(k);
+                P.Set(k, P.Get(max_row));
+                P.Set(max_row, temp_p);
+
+                //переставляем элементы в L
+                for (int j = 0; j < k; j++) {
+                    double temp_l = L.Get(k, j);
+                    L.Set(k, j, L.Get(max_row, j));
+                    L.Set(max_row, j, temp_l);
+                }
+                permutations++;
+            }
+
+            //прямой ход метода Гаусса: строки под главной диагональю
+            for (int i = k + 1; i < n; i++) {
+                if (std::abs(temp.Get(k, k)) < 1e-9) {
+                    throw std::runtime_error("Матрица вырождена или плохо обусловлена.");
+                }
+                //вычисляем кэф для домножения
+                double factor = temp.Get(i, k) / temp.Get(k, k);
+                L.Set(i, k, factor);
+                //обнуляем
+                for (int j = k; j < n; j++) {
+                    temp.Set(i, j, temp.Get(i, j) - factor * temp.Get(k, j));
+                }
+            }
+        }
+        
+        return std::make_tuple(L, temp, P, permutations);
     }
 };
 

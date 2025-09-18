@@ -1,6 +1,6 @@
 # Компилятор и флаги
 CXX := g++
-CXXFLAGS := -Wall -Wextra -std=c++17
+CXXFLAGS := -fsanitize=undefined -pedantic-errors -Wall -Wextra -g3 -std=c++20
 INCLUDES = -Itasks/classes
 BUILD_DIR := build
 TASKS_ROOT := tasks
