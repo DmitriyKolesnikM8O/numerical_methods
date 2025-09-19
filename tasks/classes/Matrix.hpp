@@ -176,6 +176,18 @@ public:
         return result;
     }
 
+    bool isTriDiagonal() const {
+        int n = this->GetLength();
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (std::abs(i - j) > 1 && std::abs(this->Get(i, j)) > 1e-9) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     std::pair<Matrix, Matrix> QR() {
         Matrix R = *this;
         Matrix Q = GetSingularMatrix(n);
@@ -312,6 +324,7 @@ Matrix get_user_matrix_input() {
             matrix.Set(i, j, n); 
         } 
     }
+    std::cout << "Исходная матрица:\n"; 
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     matrix.Show();
     return matrix;
@@ -336,6 +349,7 @@ Matrix get_user_matrix_input_rows() {
         }
     }
 
+    std::cout << "Исходная матрица:\n"; 
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     matrix.Show();
     return matrix;
@@ -358,6 +372,7 @@ Matrix get_user_matrix_input_file(std::istream& is) {
             matrix.Set(i, j, value);
         }
     }
+    std::cout << "Исходная матрица:\n"; 
     matrix.Show();
     return matrix;
 }

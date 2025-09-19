@@ -13,16 +13,15 @@ public:
     static void Do(const Matrix& A, const Vector& B) {
         int n = A.GetLength();
         
-        // Проверка на трёхдиагональность
-        if (!isTriDiagonal(A)) {
+        if (!A.isTriDiagonal()) {
             throw std::invalid_argument("Матрица не является трехдиагональной.");
         }
 
-        // Прямой ход (вычисление коэффициентов)
         Vector alpha(n);
         Vector beta(n);
         double z;
 
+        // Прямой ход (вычисление коэффициентов)
         alpha.Set(0, -A.Get(0, 1) / A.Get(0, 0));
         beta.Set(0, B.Get(0) / A.Get(0, 0));
 
@@ -51,20 +50,7 @@ public:
         for (int i = 0; i < n; i++) {
             std::cout << "x[" << i + 1 << "] = " << std::fixed << std::setprecision(6) << X.Get(i) << "\n";
         }
-    }
-
-private:
-    static bool isTriDiagonal(const Matrix& matrix) {
-        int n = matrix.GetLength();
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                if (std::abs(i - j) > 1 && std::abs(matrix.Get(i, j)) > 1e-9) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
+    }    
 };
 
 int main(int argc, char* argv[]) {
