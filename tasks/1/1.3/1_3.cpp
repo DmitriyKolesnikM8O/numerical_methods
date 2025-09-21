@@ -11,8 +11,7 @@ public:
     static void Do(const Matrix& A, const Vector& B, double epsilon) {
         int n = A.GetLength();
         
-        // Проверка на диагональное преобладание (достаточное условие сходимости)
-        if (!isDiagonallyDominant(A)) {
+        if (!A.isDiagonallyDominant()) {
             std::cerr << "Внимание: Матрица не обладает свойством диагонального преобладания. Метод может не сойтись." << std::endl;
         }
 
@@ -27,10 +26,12 @@ public:
             X_current.Set(i, B.Get(i) / A.Get(i, i));
         }
 
-        int k = 0;
+        int iterations_count = 0;
         double error;
         do {
+            //проходим по каждому уравнению системы
             for (int i = 0; i < n; i++) {
+                //сумма для накопления всех недиагональных элементов
                 double sum = 0.0;
                 for (int j = 0; j < n; j++) {
                     if (i != j) {
@@ -40,6 +41,7 @@ public:
                 X_next.Set(i, (B.Get(i) - sum) / A.Get(i, i));
             }
 
+            //расчет ошибки
             error = 0.0;
             for (int i = 0; i < n; i++) {
                 double diff = std::abs(X_next.Get(i) - X_current.Get(i));
@@ -48,7 +50,7 @@ public:
                 }
                 X_current.Set(i, X_next.Get(i));
             }
-            k++;
+            iterations_count++;
 
             // std::cout << "Error: " << error << "\n";
             // for (int i = 0; i < n; i++) {
@@ -60,29 +62,11 @@ public:
 
         } while (error > epsilon);
 
-        std::cout << "\nРешение системы (за " << k << " итераций):\n";
+        std::cout << "\nРешение системы (за " << iterations_count << " итераций):\n";
         for (int i = 0; i < n; i++) {
             std::cout << "x[" << i + 1 << "] = " << std::fixed << std::setprecision(6) << X_current.Get(i) << "\n";
         }
-    }
-
-private:
-    static bool isDiagonallyDominant(const Matrix& matrix) {
-        int n = matrix.GetLength();
-        for (int i = 0; i < n; i++) {
-            double diagonal_val = std::abs(matrix.Get(i, i));
-            double sum_off_diagonal = 0.0;
-            for (int j = 0; j < n; j++) {
-                if (i != j) {
-                    sum_off_diagonal += std::abs(matrix.Get(i, j));
-                }
-            }
-            if (diagonal_val < sum_off_diagonal) {
-                return false;
-            }
-        }
-        return true;
-    }
+    }    
 };
 
 int main(int argc, char* argv[]) {

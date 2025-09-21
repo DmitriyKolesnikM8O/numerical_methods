@@ -176,6 +176,11 @@ public:
         return result;
     }
 
+    /*
+    Проверка на трехдиагональность
+    - true: есть
+    - false: нет
+    */
     bool isTriDiagonal() const {
         int n = this->GetLength();
         for (int i = 0; i < n; i++) {
@@ -183,6 +188,28 @@ public:
                 if (std::abs(i - j) > 1 && std::abs(this->Get(i, j)) > 1e-9) {
                     return false;
                 }
+            }
+        }
+        return true;
+    }
+
+    /*
+    Проверка на диагональное преобладение
+    - true: есть
+    - false: нет
+    */
+    bool isDiagonallyDominant() const {
+        int n = this->GetLength();
+        for (int i = 0; i < n; i++) {
+            double diagonal_val = std::abs(this->Get(i, i));
+            double sum_off_diagonal = 0.0;
+            for (int j = 0; j < n; j++) {
+                if (i != j) {
+                    sum_off_diagonal += std::abs(this->Get(i, j));
+                }
+            }
+            if (diagonal_val <= sum_off_diagonal) {
+                return false;
             }
         }
         return true;

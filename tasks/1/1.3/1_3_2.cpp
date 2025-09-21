@@ -11,59 +11,52 @@ public:
     static void Do(const Matrix& A, const Vector& B, double epsilon) {
         int n = A.GetLength();
         
-        // Преобразование системы Ax=B к виду x = C*x + D
-        Matrix C(n);
-        Vector D(n);
+        if (!A.isDiagonallyDominant()) {
+            std::cerr << "Внимание: Матрица не обладает свойством диагонального преобладания. Метод может не сойтись." << std::endl;
+        }
 
+        Vector X_current(n);
+        
+        // Начальное приближение: X(0) = B / Aii
         for (int i = 0; i < n; i++) {
             if (std::abs(A.Get(i, i)) < 1e-9) {
                 throw std::runtime_error("Диагональный элемент близок к нулю. Невозможно выполнить итерации.");
             }
-            D.Set(i, B.Get(i) / A.Get(i, i));
-            for (int j = 0; j < n; j++) {
-                if (i == j) {
-                    C.Set(i, j, 0.0);
-                } else {
-                    C.Set(i, j, -A.Get(i, j) / A.Get(i, i));
-                }
-            }
+            X_current.Set(i, B.Get(i) / A.Get(i, i));
         }
-        
-        // Начальное приближение
-        Vector X_current = D;
-        Vector X_next(n);
-        
-        int k = 0;
+
+        int iterations_count = 0;
         double error;
         do {
+            Vector X_prev = X_current;
+
             for (int i = 0; i < n; i++) {
                 double sum = 0.0;
                 for (int j = 0; j < n; j++) {
-                    sum += C.Get(i, j) * X_current.Get(j);
+                    if (i != j) {
+                        sum += A.Get(i, j) * X_current.Get(j);
+                    }
                 }
-                X_next.Set(i, sum + D.Get(i));
+                X_current.Set(i, (B.Get(i) - sum) / A.Get(i, i));
             }
 
             error = 0.0;
             for (int i = 0; i < n; i++) {
-                double diff = std::abs(X_next.Get(i) - X_current.Get(i));
+                double diff = std::abs(X_current.Get(i) - X_prev.Get(i));
                 if (diff > error) {
                     error = diff;
                 }
-                X_current.Set(i, X_next.Get(i));
             }
-            k++;
-            
-            std::cout << "\nError: " << std::fixed << std::setprecision(6) << error << "\n";
-            for (int i = 0; i < n; i++) {
-                std::cout << "x[" << i << "] = " << std::fixed << std::setprecision(6) << X_current.Get(i) << "\n";
-            }
-            // std::cout << "Press Enter to continue...\n";
-            // std::cin.get();
+            iterations_count++;
+
+            // std::cout << "Error: " << error << "\n";
+            // for (int i = 0; i < n; i++) {
+            //     std::cout << "x[" << i << "] = " << std::fixed << std::setprecision(6) << X_current.Get(i) << "\n";
+            // }
 
         } while (error > epsilon);
-        
-        std::cout << "\nРешение системы (за " << k << " итераций):\n";
+
+        std::cout << "\nРешение системы (за " << iterations_count << " итераций):\n";
         for (int i = 0; i < n; i++) {
             std::cout << "x[" << i + 1 << "] = " << std::fixed << std::setprecision(6) << X_current.Get(i) << "\n";
         }
