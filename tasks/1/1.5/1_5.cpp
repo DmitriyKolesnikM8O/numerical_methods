@@ -16,6 +16,7 @@ public:
             Matrix Q = pair.first;
             Matrix R = pair.second;
 
+            //получаем следующую матрицу в последовательности
             A = R * Q;
             
             // std::cout << "\nИтерация " << k << ":\nМатрица A:\n";
@@ -34,24 +35,29 @@ private:
     static bool Finish(const Matrix& matrix, double epsilon) {
         int m = matrix.GetLength();
         double sum1, sum2;
+        //по каждому столбцу проверяем
         for (int j = 0; j < m; j++) {
-            sum1 = SquareSumColumn(matrix, j, j + 1);
-            sum2 = SquareSumColumn(matrix, j, j + 2);
+            sum1 = matrix.SquareSumColumn(j, j + 1); // норма всех элементов под диагональю
+            sum2 = matrix.SquareSumColumn(j, j + 2); // норма всех элементов ниже 2 элемента под диагональю
 
             if (sum2 > epsilon) {
                 return false;
-            } else if (sum1 <= epsilon) {
+            } else if (sum1 <= epsilon) { //успех
                 std::cout << "Лямбда" << j << ": " << matrix.Get(j, j) << "\n";
-            } else if (sum1 > epsilon) {
+            } else if (sum1 > epsilon) { //пока не сошелся столбец
                 if (j == 0) return false;
 
+                /*
+                проверка комплексно сопряженных корней
+                когда матрица не сходится к диагональной, а оставляем блоки 2 на 2
+                */
                 double aii = matrix.Get(j, j);
                 double ajj = matrix.Get(j + 1, j + 1);
                 double aij = matrix.Get(j, j + 1);
                 double aji = matrix.Get(j + 1, j);
 
-                double x = (aii + ajj) / 2.0;
-                double y = std::sqrt(-(aii + ajj) * (aii + ajj) + 4 * (aii * ajj - aij * aji)) / 2.0;
+                double x = (aii + ajj) / 2.0; //действительная часть корня
+                double y = std::sqrt(-(aii + ajj) * (aii + ajj) + 4 * (aii * ajj - aij * aji)) / 2.0; //мнимая
 
                 std::cout << "Лямбда " << j << ": " << x << " + " << y << "i\n";
                 std::cout << "Лямбда " << (j + 1) << ": " << x << " - " << y << "i\n";
@@ -61,14 +67,7 @@ private:
         return true;
     }
 
-    static double SquareSumColumn(const Matrix& matrix, int column_number, int first_index) {
-        int n = matrix.GetHeight();
-        double sum = 0.0;
-        for (int i = first_index; i < n; i++) {
-            sum += matrix.Get(i, column_number) * matrix.Get(i, column_number);
-        }
-        return std::sqrt(sum);
-    }
+    
 };
 
 int main(int argc, char* argv[]) {

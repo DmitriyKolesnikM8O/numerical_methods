@@ -43,6 +43,16 @@ public:
 
     int GetHeight() const { return n; }
 
+    //вычсляем норму части столбца
+    double SquareSumColumn(int column_number, int first_index) const {
+        int n = this->GetHeight();
+        double sum = 0.0;
+        for (int i = first_index; i < n; i++) {
+            sum += this->Get(i, column_number) * this->Get(i, column_number);
+        }
+        return std::sqrt(sum);
+    }
+
     Vector GetColumn(int k) const {
         if (k < 0 || k >= n) throw std::out_of_range("Столбец не в границах матрицы");
         Vector column(n);
@@ -215,18 +225,33 @@ public:
         return true;
     }
 
+    /*
+    возврат: (Q, R)
+    Q - унитарная или ортогональная матрица
+    R - верхнетреугольная матрица
+    используется Хаусхолдер:
+        - строим вектор v
+        - делаем внешнее произведение
+        - считаем матрицу Хаусхолдера H
+        - делаем преобразования
+    */
     std::pair<Matrix, Matrix> QR() {
         Matrix R = *this;
         Matrix Q = GetSingularMatrix(n);
-        Vector v(n);
+        Vector v(n); //вектор Хаусхолдера
 
+        //цикл по столбцам
+        //каждая итерация k - обнуление элементов под главной диагональю в k-ом столбце
         for (int k = 0; k < n - 1; k++) {
+            //строим вектор для текущего столбца k
             for (int i = 0; i < n; i++) {
+                //выше главной диагонали в 0
                 if (i < k) {
                     v.Set(i, 0.0);
                 } else if (i == k) {
                     double norma = 0.0;
-                    Vector column = R.GetColumn(k);
+                    Vector column = R.GetColumn(k);  
+                    //проходим по элементам столбца с диагонали   
                     for (int j = k; j < n; j++) {
                         norma += column.Get(j) * column.Get(j);
                     }
@@ -237,8 +262,9 @@ public:
                 }
             }
 
+            //это v * v^t (внешнее произведение)
             Matrix temp(n);
-            double p = 0.0;
+            double p = 0.0; //скалярный кэф из формулы Хаусхолдера
             for (int i = 0; i < n; i++) {
                 for (int j = 0; j < n; j++) {
                     temp.Set(i, j, v.Get(i) * v.Get(j));
@@ -247,10 +273,10 @@ public:
             }
 
             p = -2.0 / p;
-            Matrix H = GetSingularMatrix(n) + (temp * p);
+            Matrix H = GetSingularMatrix(n) + (temp * p); //сама матрица
 
-            R = H * R;
-            Q = Q * H;
+            R = H * R; //элементы обнуляются
+            Q = Q * H; //накапливаем преобразование
         }
 
         return std::make_pair(Q, R);
