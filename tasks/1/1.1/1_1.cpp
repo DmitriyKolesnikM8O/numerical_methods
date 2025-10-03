@@ -22,13 +22,18 @@ public:
         U.Show();
         std::cout << "\nМатрица L:\n";
         L.Show();
+        
+
 
         double det = A.Determinant();
         std::cout << "\nОпределитель матрицы: " << std::fixed << std::setprecision(6) << det << "\n";
 
         Matrix inverse_A = A.Inverse();
+        Matrix check = inverse_A * A;
         std::cout << "\nОбратная матрица:\n";
         inverse_A.Show();
+        std::cout << "\nПроверка:\n";
+        check.Show();
         
         //реализация решения Ax = b с помощью LU
 

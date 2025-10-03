@@ -91,6 +91,7 @@ public:
         return det;
     }
 
+    //вычисление обратной матрицы
     Matrix Inverse() const {
         Matrix L, U;
         Vector P;
