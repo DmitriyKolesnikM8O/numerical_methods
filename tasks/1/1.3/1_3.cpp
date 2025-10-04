@@ -8,6 +8,42 @@
 
 class Task3 {
 public:
+
+    static void CheckSolution(const Matrix& A, const Vector& B, const Vector& X) {
+        int n = A.GetLength();
+        Vector Residual(n);
+
+        //R - вектор невязки
+        // 1. Вычисляем R = B - A * X
+        for (int i = 0; i < n; i++) {
+            double Ax_i = 0.0;
+            for (int j = 0; j < n; j++) {
+                Ax_i += A.Get(i, j) * X.Get(j);
+            }
+            Residual.Set(i, B.Get(i) - Ax_i);
+        }
+
+        // 2. Вычисляем норму невязки (например, бесконечную норму: max|R_i|)
+        double residual_norm = 0.0;
+        for (int i = 0; i < n; i++) {
+            double abs_r = std::abs(Residual.Get(i));
+            if (abs_r > residual_norm) {
+                residual_norm = abs_r;
+            }
+        }
+
+        std::cout << "\n--- Проверка решения ---\n";
+        std::cout << "Максимальный элемент вектора невязки (||B - A*X||_inf): " 
+                  << std::scientific << std::setprecision(2) << residual_norm << "\n";
+        
+        if (residual_norm > 1e-6) {
+             std::cout << "Внимание: Норма невязки высока. Решение может быть неточным.\n";
+        } else {
+             std::cout << "Норма невязки мала. Решение считается надежным.\n";
+        }
+        std::cout << "----------------------\n";
+    }
+    
     static void Do(const Matrix& A, const Vector& B, double epsilon) {
         int n = A.GetLength();
         
@@ -66,6 +102,8 @@ public:
         for (int i = 0; i < n; i++) {
             std::cout << "x[" << i + 1 << "] = " << std::fixed << std::setprecision(6) << X_current.Get(i) << "\n";
         }
+
+        Task3::CheckSolution(A, B, X_current);
     }    
 };
 

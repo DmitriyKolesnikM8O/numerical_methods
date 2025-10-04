@@ -1,0 +1,97 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "-Itasks/classes",
+      "-fsanitize=undefined",
+      "-pedantic-errors",
+      "-Wall",
+      "-Wextra",
+      "-g3",
+      "-std=c++20",
+      "-o",
+      "build/1.1",
+      "tasks/1/1.1/1_1.cpp"
+    ],
+    "directory": "/home/ares/numerical_methods",
+    "file": "/home/ares/numerical_methods/tasks/1/1.1/1_1.cpp",
+    "output": "/home/ares/numerical_methods/build/1.1"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "-Itasks/classes",
+      "-fsanitize=undefined",
+      "-pedantic-errors",
+      "-Wall",
+      "-Wextra",
+      "-g3",
+      "-std=c++20",
+      "-o",
+      "build/1.2",
+      "tasks/1/1.2/1_2.cpp"
+    ],
+    "directory": "/home/ares/numerical_methods",
+    "file": "/home/ares/numerical_methods/tasks/1/1.2/1_2.cpp",
+    "output": "/home/ares/numerical_methods/build/1.2"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "-Itasks/classes",
+      "-fsanitize=undefined",
+      "-pedantic-errors",
+      "-Wall",
+      "-Wextra",
+      "-g3",
+      "-std=c++20",
+      "-o",
+      "build/1.3",
+      "tasks/1/1.3/1_3.cpp"
+    ],
+    "directory": "/home/ares/numerical_methods",
+    "file": "/home/ares/numerical_methods/tasks/1/1.3/1_3.cpp",
+    "output": "/home/ares/numerical_methods/build/1.3"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "-Itasks/classes",
+      "-fsanitize=undefined",
+      "-pedantic-errors",
+      "-Wall",
+      "-Wextra",
+      "-g3",
+      "-std=c++20",
+      "-o",
+      "build/1.5",
+      "tasks/1/1.5/1_5.cpp"
+    ],
+    "directory": "/home/ares/numerical_methods",
+    "file": "/home/ares/numerical_methods/tasks/1/1.5/1_5.cpp",
+    "output": "/home/ares/numerical_methods/build/1.5"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "-Itasks/classes",
+      "-fsanitize=undefined",
+      "-pedantic-errors",
+      "-Wall",
+      "-Wextra",
+      "-g3",
+      "-std=c++20",
+      "-o",
+      "build/1.3.2",
+      "tasks/1/1.3/1_3_2.cpp"
+    ],
+    "directory": "/home/ares/numerical_methods",
+    "file": "/home/ares/numerical_methods/tasks/1/1.3/1_3_2.cpp",
+    "output": "/home/ares/numerical_methods/build/1.3.2"
+  }
+]

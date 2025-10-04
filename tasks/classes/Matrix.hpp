@@ -43,7 +43,7 @@ public:
 
     int GetHeight() const { return n; }
 
-    //вычсляем норму части столбца
+    //вычисляем норму части столбца
     double SquareSumColumn(int column_number, int first_index) const {
         int n = this->GetHeight();
         double sum = 0.0;
@@ -140,6 +140,42 @@ public:
         }
         
         return inverse;
+    }
+
+    Matrix Transpose() const {
+        int n = GetLength();
+        Matrix result(n);
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                result.Set(j, i, Get(i, j));
+            }
+        }
+        return result;
+    }
+    Matrix Subtract(const Matrix& other) const {
+        if (n != other.n) throw std::invalid_argument("Недопустимые размерности для вычитания");
+        Matrix result(n);
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                result.Set(i, j, data[i][j] - other.data[i][j]);
+            }
+        }
+        return result;
+    }
+
+    double GetNorm() const {
+        double max_row_sum = 0.0;
+        // n - это размер матрицы
+        for (int i = 0; i < n; i++) {
+            double current_row_sum = 0.0;
+            for (int j = 0; j < n; j++) {
+                current_row_sum += std::abs(data[i][j]);
+            }
+            if (current_row_sum > max_row_sum) {
+                max_row_sum = current_row_sum;
+            }
+        }
+        return max_row_sum;
     }
 
     //возвращает единичную матрицу

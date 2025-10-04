@@ -5,8 +5,10 @@ INCLUDES = -Itasks/classes
 BUILD_DIR := build
 TASKS_ROOT := tasks
 
-TASK_DIRS := $(wildcard $(TASKS_ROOT)/1/[0-9]*.*/)
-TASKS := $(patsubst $(TASKS_ROOT)/1/%/,%,$(TASK_DIRS))
+TASK_DIRS_ROOT := $(wildcard $(TASKS_ROOT)/[0-9]*/)
+TASKS_DIRS := $(wildcard $(TASKS_DIRS_ROOT)*[0-9]*.*/)
+
+TASKS := $(shell find $(TASK_DIRS_ROOT) -mindepth 1 -maxdepth 1 -type d -name '*.*' -printf '%P\n')
 
 GENERAL_TASKS := $(filter-out 1.3,$(TASKS))
 
@@ -18,23 +20,18 @@ all: $(ALL_TARGETS)
 $(GENERAL_TASKS): %:
 	@mkdir -p $(BUILD_DIR)
 	@echo "Сборка задания $@..."
-	@if [ -f "$(TASKS_ROOT)/1/$@/$@.cpp" ]; then \
-		$(CXX) $(INCLUDES) $(CXXFLAGS) -o $(BUILD_DIR)/$@ $(TASKS_ROOT)/1/$@/$@.cpp; \
-		echo "Собрано: $(BUILD_DIR)/$@ из $(TASKS_ROOT)/1/$@/$@.cpp"; \
-	elif [ -f "$(TASKS_ROOT)/1/$@/$(subst .,_,$@).cpp" ]; then \
-		$(CXX) $(INCLUDES) $(CXXFLAGS) -o $(BUILD_DIR)/$@ $(TASKS_ROOT)/1/$@/$(subst .,_,$@).cpp; \
-		echo "Собрано: $(BUILD_DIR)/$@ из $(TASKS_ROOT)/1/$@/$(subst .,_,$@).cpp"; \
+	@TASK_ROOT=$$(echo $@ | cut -d. -f1); \
+	TASK_PATH=$(TASKS_ROOT)/$$TASK_ROOT/$@; \
+	TASK_FILENAME_UNDERSCORE=$$(echo $@ | tr '.' '_'); \
+	if [ -f "$$TASK_PATH/$@.cpp" ]; then \
+		$(CXX) $(INCLUDES) $(CXXFLAGS) -o $(BUILD_DIR)/$@ $$TASK_PATH/$@.cpp; \
+		echo "Собрано: $(BUILD_DIR)/$@ из $$TASK_PATH/$@.cpp"; \
+	elif [ -f "$$TASK_PATH/$$TASK_FILENAME_UNDERSCORE.cpp" ]; then \
+		$(CXX) $(INCLUDES) $(CXXFLAGS) -o $(BUILD_DIR)/$@ $$TASK_PATH/$$TASK_FILENAME_UNDERSCORE.cpp; \
+		echo "Собрано: $(BUILD_DIR)/$@ из $$TASK_PATH/$$TASK_FILENAME_UNDERSCORE.cpp"; \
 	else \
-		echo "Поиск любого .cpp файла в $(TASKS_ROOT)/1/$@..."; \
-		CPP_FILE=$$(find "$(TASKS_ROOT)/1/$@" -maxdepth 1 -name "*.cpp" | head -1); \
-		if [ -n "$$CPP_FILE" ]; then \
-			$(CXX) $(INCLUDES) $(CXXFLAGS) -o $(BUILD_DIR)/$@ "$$CPP_FILE"; \
-			echo "Собрано: $(BUILD_DIR)/$@ из $$CPP_FILE"; \
-		else \
-			echo "Ошибка: Не найден .cpp файл для задания $@"; \
-		fi; \
+		echo "Ошибка: Не найден файл $@.cpp или $$TASK_FILENAME_UNDERSCORE.cpp в $$TASK_PATH"; \
 	fi
-
 
 1.3:
 	@mkdir -p $(BUILD_DIR)

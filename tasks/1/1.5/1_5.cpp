@@ -9,12 +9,40 @@
 
 class Task5 {
 public:
+    static void CheckOrthogonality(const Matrix& Q) {
+        int n = Q.GetLength();
+        
+        std::cout << "\n--- Проверка ортогональности Q (на последней итерации) ---\n";
+
+        // 1. Проверка ортогональности Q (Ошибка Q = ||Q^T * Q - I||)
+        Matrix Q_T = Q.Transpose(); 
+        Matrix Q_T_Q = Q_T * Q;
+        Matrix Identity = Matrix::GetSingularMatrix(n); 
+        Matrix Residual_Q = Q_T_Q.Subtract(Identity);
+        
+        double error_Q = Residual_Q.GetNorm();
+
+        std::cout << std::fixed << std::setprecision(8);
+        std::cout << "Ошибка ортогональности ||Q^T*Q - I||_inf: " << error_Q << "\n";
+        
+        if (error_Q < 1e-8) {
+            std::cout << "Ортогональность Q подтверждена. Ошибка мала.\n";
+        } else {
+            std::cerr << "Внимание: Ошибка ортогональности Q превышает допуск 1e-8. Возможно, проблемы с реализацией Householder.\n";
+        }
+        std::cout << "--------------------------------\n";
+    }
     static void Do(Matrix A, double epsilon) {
         int k = 1;
+        Matrix Q_last; 
+        Matrix R_last; 
         do {
             auto pair = A.QR();
             Matrix Q = pair.first;
             Matrix R = pair.second;
+
+            Q_last = Q; 
+            R_last = R; 
 
             //получаем следующую матрицу в последовательности
             A = R * Q;
@@ -27,8 +55,11 @@ public:
             
         } while (!Finish(A, epsilon));
 
+
         std::cout << "\nМатрица A:\n";
         A.Show();
+
+        CheckOrthogonality(Q_last); 
     }
 
 private:
@@ -59,8 +90,8 @@ private:
                 double x = (aii + ajj) / 2.0; //действительная часть корня
                 double y = std::sqrt(-(aii + ajj) * (aii + ajj) + 4 * (aii * ajj - aij * aji)) / 2.0; //мнимая
 
-                std::cout << "Лямбда " << j << ": " << x << " + " << y << "i\n";
-                std::cout << "Лямбда " << (j + 1) << ": " << x << " - " << y << "i\n";
+                std::cout << "Лямбда  " << j << ": " << x << " + " << y << "i\n";
+                std::cout << "Лямбда  " << (j + 1) << ": " << x << " - " << y << "i\n";
                 j++;
             }
         }
