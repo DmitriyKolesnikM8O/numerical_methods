@@ -12,12 +12,11 @@ using namespace std;
 
 class Task2_2 {
 private:
-    static constexpr double A = 2.0;
     
     // Увеличиваем TAU для ускорения сходимости (0.1 вместо 0.01)
     static constexpr double TAU = 0.1; 
     
-    // Начальное приближение
+    // Начальное приближение (определено графически)
     static constexpr double X1_INIT = 0.7; 
     static constexpr double X2_INIT = 1.0;
 
@@ -47,6 +46,16 @@ private:
     static double J21(double x1) { return -std::exp(x1) - 1.0; }
     static double J22() { return 2.0; }
 
+    // --- Норма вектора F (максимум модуля компоненты) ---
+    static double norm_F(double x1, double x2) {
+        return std::max(std::fabs(F1(x1, x2)), std::fabs(F2(x1, x2)));
+    }
+
+    // --- Норма приращения (максимум модуля компоненты) ---
+    static double norm_delta(double delta1, double delta2) {
+        return std::max(std::fabs(delta1), std::fabs(delta2));
+    }
+
 
 public:
     static void Do(double eps) {
@@ -57,6 +66,38 @@ public:
         // ---------------------------------------------------
         // Метод простой итерации (Метод релаксации)
         // ---------------------------------------------------
+        
+        
+        // ПРОВЕРКА УСЛОВИЯ СХОДИМОСТИ (СЖАТИЯ) МПИ ***
+        // Вычисляем норму Якоби итерационной функции G' = I - TAU * F' в начальной точке
+        
+        // 1. Элементы F'(X) в X0:
+        double J11_init = J11(X1_INIT);
+        double J12_init = J12(X2_INIT);
+        double J21_init = J21(X1_INIT);
+        double J22_init = J22();
+
+        // 2. Элементы G'(X) = I - TAU * F'(X):
+        double G_11 = 1.0 - TAU * J11_init;
+        double G_12 = -TAU * J12_init;
+        double G_21 = -TAU * J21_init;
+        double G_22 = 1.0 - TAU * J22_init;
+        
+        // 3. Расчет нормы (Используем бесконечную норму: max сумма модулей по строкам)
+        double norm_row1 = std::fabs(G_11) + std::fabs(G_12);
+        double norm_row2 = std::fabs(G_21) + std::fabs(G_22);
+        double norm_G_prime = std::max(norm_row1, norm_row2);
+        
+       if (norm_G_prime < 1.0) {
+            std::cout << "Условие сходимости: ||G'(X0)||inf = " 
+                      << norm_G_prime << " < 1. Сходимость ожидается.\n";
+        } else {
+             // Сохраняем вывод для информации, но убираем 'ВНИМАНИЕ' для чистоты
+             std::cout << "Проверка сходимости: ||G'(X0)||inf = " 
+                       << norm_G_prime << " >= 1 (достаточное условие не выполнено, но сходимость возможна).\n";
+        }
+
+
         double x1_fp = X1_INIT;
         double x2_fp = X2_INIT;
         int iterations_fp = 0;
@@ -123,7 +164,7 @@ public:
         }
 
         // ---------------------------------------------------
-        // Метод Ньютона (без изменений)
+        // Метод Ньютона
         // ---------------------------------------------------
         double x1_newton = X1_INIT;
         double x2_newton = X2_INIT;
@@ -143,6 +184,7 @@ public:
                 double j21 = J21(x1_old); 
                 double j22 = J22();
 
+                //определитель матрицы якоби
                 double det = j11 * j22 - j12 * j21;
                 if (std::fabs(det) < 1e-10) {
                     throw std::runtime_error("Вырожденный якобиан в методе Ньютона.");
@@ -152,6 +194,8 @@ public:
                 double delta1 = (-f1 * j22 + f2 * j12) / det;
                 double delta2 = (f1 * j21 - f2 * j11) / det;
 
+
+                //
                 x1_newton = x1_old + delta1;
                 x2_newton = x2_old + delta2;
 
