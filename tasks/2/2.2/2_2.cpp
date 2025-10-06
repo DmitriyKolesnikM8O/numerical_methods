@@ -14,11 +14,11 @@ class Task2_2 {
 private:
     
     // Увеличиваем TAU для ускорения сходимости (0.1 вместо 0.01)
-    static constexpr double TAU = 0.1; 
+    static constexpr double TAU = 0.05; 
     
     // Начальное приближение (определено графически)
-    static constexpr double X1_INIT = 0.7; 
-    static constexpr double X2_INIT = 1.0;
+    static constexpr double X1_INIT = 0.42; 
+    static constexpr double X2_INIT = 0.97;
 
     // --- Функции невязки F(X) ---
     static double F1(double x1, double x2) {
@@ -56,9 +56,54 @@ private:
         return std::max(std::fabs(delta1), std::fabs(delta2));
     }
 
+    static void generate_plot_data(const std::string& filename = "plot_data.csv") {
+
+        const std::string full_path = "./tasks/2/2.2/" + filename; 
+        std::ofstream file(full_path);
+        if (!file.is_open()) {
+            std::cerr << "Не удалось создать файл " << filename << std::endl;
+            return;
+        }
+
+        file << "x1,F1_x2,F2_x2,Difference\n";  // Заголовки: x1, x2 из F1=0, x2 из F2=0
+        
+        // Диапазон для x1. Кривая F1=0 существует только при x1 в [-2, 2]
+        // Мы ищем решение в первой четверти, поэтому x1 в [0, 2]
+        const double X_MAX = 2.0;
+        const int NUM_POINTS = 100;
+
+        for (int i = 0; i <= NUM_POINTS; ++i) {
+            double x1 = X_MAX * (double)i / NUM_POINTS;
+            
+            // Кривая 1 (Эллипс): x1^2 + 4x2^2 - 4 = 0  => x2 = sqrt(4 - x1^2) / 2
+            double x2_from_F1 = 0.0;
+            if (4.0 - x1 * x1 >= 0) {
+                x2_from_F1 = std::sqrt(4.0 - x1 * x1) / 2.0;
+            } else {
+                continue; // Игнорируем точки вне области определения
+            }
+
+            // Кривая 2 (Трансцендентная): 2x2 - exp(x1) - x1 = 0 => x2 = (exp(x1) + x1) / 2
+            double x2_from_F2 = (std::exp(x1) + x1) / 2.0;
+
+            double difference = std::fabs(x2_from_F1 - x2_from_F2);
+            
+            // Вывод: x1, x2(F1), x2(F2)
+            file << std::fixed << std::setprecision(10) 
+                 << x1 << "," << x2_from_F1 << "," << x2_from_F2 
+                 << "," << difference << "\n"; // Добавлена разница
+        }
+        
+        std::cout << "\n[!] Данные для графического определения записаны в " << filename 
+                  << ". Используйте стороннее ПО для построения графиков F1=0 и F2=0.\n";
+    }
+
 
 public:
     static void Do(double eps) {
+
+        generate_plot_data(); 
+
         std::cout << std::fixed << std::setprecision(10);
         std::cout << "\n--- Решение системы для варианта 13 (a=2): x1^2+4x2^2-4=0, 2x2-e^x1-x1=0 ---\n";
         std::cout << "Начальное приближение: X(0) = (" << X1_INIT << ", " << X2_INIT << ")\n";
@@ -88,14 +133,14 @@ public:
         double norm_row2 = std::fabs(G_21) + std::fabs(G_22);
         double norm_G_prime = std::max(norm_row1, norm_row2);
         
-       if (norm_G_prime < 1.0) {
-            std::cout << "Условие сходимости: ||G'(X0)||inf = " 
-                      << norm_G_prime << " < 1. Сходимость ожидается.\n";
-        } else {
-             // Сохраняем вывод для информации, но убираем 'ВНИМАНИЕ' для чистоты
-             std::cout << "Проверка сходимости: ||G'(X0)||inf = " 
-                       << norm_G_prime << " >= 1 (достаточное условие не выполнено, но сходимость возможна).\n";
-        }
+    //    if (norm_G_prime < 1.0) {
+    //         std::cout << "Условие сходимости: ||G'(X0)||inf = " 
+    //                   << norm_G_prime << " < 1. Сходимость ожидается.\n";
+    //     } else {
+    //          // Сохраняем вывод для информации, но убираем 'ВНИМАНИЕ' для чистоты
+    //          std::cout << "Проверка сходимости: ||G'(X0)||inf = " 
+    //                    << norm_G_prime << " >= 1 (достаточное условие не выполнено, но сходимость возможна).\n";
+    //     }
 
 
         double x1_fp = X1_INIT;
