@@ -188,11 +188,22 @@ public:
     }
 
     Matrix operator+(const Matrix& other) const {
-        if (n != other.n) throw std::invalid_argument("Недопустимые размерности");
+        if (n != other.n) throw std::invalid_argument("Недопустимые размерности при сложении");
         Matrix result(n);
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
                 result.Set(i, j, data[i][j] + other.data[i][j]);
+            }
+        }
+        return result;
+    }
+
+    Matrix operator-(const Matrix& other) const {
+        if (n != other.n) throw std::invalid_argument("Недопустимые размерности при вычитании");
+        Matrix result(n);
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                result.Set(i, j, data[i][j] - other.data[i][j]);
             }
         }
         return result;
@@ -209,7 +220,7 @@ public:
     }
 
     Matrix operator*(const Matrix& other) const {
-        if (n != other.n) throw std::invalid_argument("Недопустимые размерности");
+        if (n != other.n) throw std::invalid_argument("Недопустимые размерности при умножении");
         Matrix result(n);
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
@@ -274,7 +285,7 @@ public:
     */
     std::pair<Matrix, Matrix> QR() {
         Matrix R = *this;
-        Matrix Q = GetSingularMatrix(n);
+        Matrix Q = GetSingularMatrix(n); //тут копим произведения преобразований хаусхолдера
         Vector v(n); //вектор Хаусхолдера
 
         //цикл по столбцам

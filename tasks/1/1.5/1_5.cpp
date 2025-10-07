@@ -18,7 +18,7 @@ public:
         Matrix Q_T = Q.Transpose(); 
         Matrix Q_T_Q = Q_T * Q;
         Matrix Identity = Matrix::GetSingularMatrix(n); 
-        Matrix Residual_Q = Q_T_Q.Subtract(Identity);
+        Matrix Residual_Q = Q_T_Q - Identity;
         
         double error_Q = Residual_Q.GetNorm();
 
@@ -47,15 +47,15 @@ public:
             //получаем следующую матрицу в последовательности
             A = R * Q;
             
-            // std::cout << "\nИтерация " << k << ":\nМатрица A:\n";
-            // A.Show();
-            // std::cout << "Press Enter to continue...\n";
-            // std::cin.get();
+            std::cout << "\nИтерация " << k << ":\nМатрица A:\n";
+            A.Show();
+            std::cout << "Press Enter to continue...\n";
+            std::cin.get();
             k++;
             
         } while (!Finish(A, epsilon));
 
-
+        std::cout << "\nИтоговое число итераций: " << k << "\n";
         std::cout << "\nМатрица A:\n";
         A.Show();
 
@@ -65,40 +65,64 @@ public:
 private:
     static bool Finish(const Matrix& matrix, double epsilon) {
         int m = matrix.GetLength();
-        double sum1, sum2;
-        //по каждому столбцу проверяем
-        for (int j = 0; j < m; j++) {
-            sum1 = matrix.SquareSumColumn(j, j + 1); // норма всех элементов под диагональю
-            sum2 = matrix.SquareSumColumn(j, j + 2); // норма всех элементов ниже 2 элемента под диагональю
-
-            if (sum2 > epsilon) {
-                return false;
-            } else if (sum1 <= epsilon) { //успех
-                std::cout << "Лямбда" << j << ": " << matrix.Get(j, j) << "\n";
-            } else if (sum1 > epsilon) { //пока не сошелся столбец
-                if (j == 0) return false;
-
-                /*
-                проверка комплексно сопряженных корней
-                когда матрица не сходится к диагональной, а оставляем блоки 2 на 2
-                */
-                double aii = matrix.Get(j, j);
-                double ajj = matrix.Get(j + 1, j + 1);
-                double aij = matrix.Get(j, j + 1);
-                double aji = matrix.Get(j + 1, j);
-
-                double x = (aii + ajj) / 2.0; //действительная часть корня
-                double y = std::sqrt(-(aii + ajj) * (aii + ajj) + 4 * (aii * ajj - aij * aji)) / 2.0; //мнимая
-
-                std::cout << "Лямбда  " << j << ": " << x << " + " << y << "i\n";
-                std::cout << "Лямбда  " << (j + 1) << ": " << x << " - " << y << "i\n";
+        bool converged = true;
+        
+        int j = 0;
+        while (j < m) {
+            if (j == m - 1) {
+                // Последний элемент - всегда вещественное собственное значение
+                std::cout << "Лямбда " << j << ": " << matrix.Get(j, j) << "\n";
                 j++;
+            } else {
+                double subdiag = std::abs(matrix.Get(j + 1, j));
+                
+                if (subdiag <= epsilon) {
+                    // Поддиагональный элемент мал - вещественное собственное значение
+                    std::cout << "Лямбда " << j << ": " << matrix.Get(j, j) << "\n";
+                    j++;
+                } else {
+                    // Проверяем, сошелся ли блок 2x2
+                    double next_subdiag = (j + 2 < m) ? std::abs(matrix.Get(j + 2, j + 1)) : 0.0;
+                    
+                    if (next_subdiag <= epsilon) {
+                        // Блок 2x2 сошелся - вычисляем собственные значения
+                        double a11 = matrix.Get(j, j);
+                        double a12 = matrix.Get(j, j + 1);
+                        double a21 = matrix.Get(j + 1, j);
+                        double a22 = matrix.Get(j + 1, j + 1);
+                        
+                        // Характеристическое уравнение: λ² - (a11+a22)λ + (a11*a22 - a12*a21) = 0
+                        double trace = a11 + a22;
+                        double det = a11 * a22 - a12 * a21;
+                        double discriminant = trace * trace - 4 * det;
+                        
+                        if (discriminant >= 0) {
+                            // Два вещественных корня
+                            double sqrt_d = std::sqrt(discriminant);
+                            double lambda1 = (trace + sqrt_d) / 2.0;
+                            double lambda2 = (trace - sqrt_d) / 2.0;
+                            std::cout << "Лямбда " << j << ": " << lambda1 << "\n";
+                            std::cout << "Лямбда " << (j + 1) << ": " << lambda2 << "\n";
+                        } else {
+                            // Комплексно-сопряженные корни
+                            double real_part = trace / 2.0;
+                            double imag_part = std::sqrt(-discriminant) / 2.0;
+                            std::cout << "Лямбда " << j << ": " << real_part << " + " << imag_part << "i\n";
+                            std::cout << "Лямбда " << (j + 1) << ": " << real_part << " - " << imag_part << "i\n";
+                        }
+                        j += 2; // Перескакиваем через обработанный блок
+                    } else {
+                        // Блок еще не сошелся - продолжаем итерации
+                        converged = false;
+                        break;
+                    }
+                }
             }
         }
-        return true;
+        
+        return converged;
     }
 
-    
 };
 
 int main(int argc, char* argv[]) {
