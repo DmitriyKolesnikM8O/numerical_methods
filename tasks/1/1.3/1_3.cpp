@@ -43,12 +43,49 @@ public:
         }
         std::cout << "----------------------\n";
     }
+
+    static double CalculateAlphaNorm(const Matrix& A) {
+        int n = A.GetLength();
+        double max_row_sum = 0.0;
+        for (int i = 0; i < n; i++) {
+            double current_row_sum = 0.0;
+            if (std::abs(A.Get(i, i)) < 1e-9) {
+                // Если диагональный элемент близок к нулю, норма бесконечна или метод не применим
+                throw std::runtime_error("Диагональный элемент близок к нулю. Невозможно вычислить норму альфа.");
+            }
+            for (int j = 0; j < n; j++) {
+                if (i != j) {
+                    current_row_sum += std::abs(A.Get(i, j) / A.Get(i, i));
+                }
+            }
+            if (current_row_sum > max_row_sum) {
+                max_row_sum = current_row_sum;
+            }
+        }
+        return max_row_sum; // Это и есть ||альфа||_inf
+    }
     
     static void Do(const Matrix& A, const Vector& B, double epsilon) {
         int n = A.GetLength();
         
         if (!A.isDiagonallyDominant()) {
             std::cerr << "Внимание: Матрица не обладает свойством диагонального преобладания. Метод может не сойтись." << std::endl;
+        }
+
+        double alpha_norm;
+        try {
+            alpha_norm = CalculateAlphaNorm(A);
+        } catch (const std::exception& e) {
+            std::cerr << "Ошибка при расчете нормы: " << e.what() << std::endl;
+            return; 
+        }
+
+        if (alpha_norm >= 1.0) {
+            std::cerr << "Внимание: Норма матрицы перехода ||alpha||_inf = " 
+                      << std::fixed << std::setprecision(4) << alpha_norm 
+                      << " >= 1. Метод не гарантирует сходимость." << std::endl;
+        } else {
+            std::cout << "Норма: " << alpha_norm;
         }
 
         Vector X_current(n);
@@ -63,7 +100,8 @@ public:
         }
 
         int iterations_count = 0;
-        double error;
+        double error_diff_norm; // ||X(k) - X(k-1)||_inf
+        double error_estimate; // Оценка погрешности ||X(k) - X*||_inf
         do {
             //проходим по каждому уравнению системы
             for (int i = 0; i < n; i++) {
@@ -78,13 +116,20 @@ public:
             }
 
             //расчет ошибки
-            error = 0.0;
+            error_diff_norm = 0.0;
             for (int i = 0; i < n; i++) {
                 double diff = std::abs(X_next.Get(i) - X_current.Get(i));
-                if (diff > error) {
-                    error = diff;
+                if (diff > error_diff_norm) {
+                    error_diff_norm = diff;
                 }
-                X_current.Set(i, X_next.Get(i));
+                X_current.Set(i, X_next.Get(i)); // Обновление X_current
+            }
+            if (alpha_norm < 1.0) {
+                error_estimate = (alpha_norm / (1.0 - alpha_norm)) * error_diff_norm;
+            } else {
+                // Если ||alpha|| >= 1, оценка (1.20) не имеет смысла, 
+                // и продолжаем использовать практическую норму разности, если метод еще не "развалился".
+                error_estimate = error_diff_norm; 
             }
             iterations_count++;
 
@@ -96,7 +141,7 @@ public:
             // std::cout << "Press Enter to continue...\n";
             // std::cin.get();
 
-        } while (error > epsilon);
+        } while (error_estimate > epsilon);
 
         std::cout << "\nРешение системы (за " << iterations_count << " итераций):\n";
         for (int i = 0; i < n; i++) {

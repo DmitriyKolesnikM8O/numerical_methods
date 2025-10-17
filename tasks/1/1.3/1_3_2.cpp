@@ -43,14 +43,54 @@ public:
         std::cout << "----------------------\n";
     }
 
+    static double CalculateAlphaNorm_Jacobi(const Matrix& A) {
+        int n = A.GetLength();
+        double max_row_sum = 0.0;
+        for (int i = 0; i < n; i++) {
+            double current_row_sum = 0.0;
+            if (std::abs(A.Get(i, i)) < 1e-9) {
+                throw std::runtime_error("Диагональный элемент близок к нулю. Невозможно вычислить норму альфа.");
+            }
+            for (int j = 0; j < n; j++) {
+                if (i != j) {
+                    current_row_sum += std::abs(A.Get(i, j) / A.Get(i, i));
+                }
+            }
+            if (current_row_sum > max_row_sum) {
+                max_row_sum = current_row_sum;
+            }
+        }
+        return max_row_sum; 
+    }
+
+
+
     static void Do(const Matrix& A, const Vector& B, double epsilon) {
         int n = A.GetLength();
+
+        double alpha_norm;
+        try {
+            alpha_norm = CalculateAlphaNorm_Jacobi(A); 
+        } catch (const std::exception& e) {
+            std::cerr << "Ошибка при расчете нормы: " << e.what() << std::endl;
+            return; 
+        }
+
+        if (alpha_norm >= 1.0) {
+            std::cerr << "Внимание: Норма матрицы перехода ||alpha||_inf = " 
+                      << std::fixed << std::setprecision(4) << alpha_norm 
+                      << " >= 1. Метод не гарантирует сходимость. Используется практический критерий." << std::endl;
+        } else {
+            std::cout << "Норма: " << alpha_norm << std::endl;
+        }
         
         if (!A.isDiagonallyDominant()) {
             std::cerr << "Внимание: Матрица не обладает свойством диагонального преобладания. Метод может не сойтись." << std::endl;
         }
 
         Vector X_current(n);
+
+        
         
         // Начальное приближение: X(0) = B / Aii
         for (int i = 0; i < n; i++) {
@@ -61,7 +101,10 @@ public:
         }
 
         int iterations_count = 0;
-        double error;
+
+        double error_diff_norm; // ||X(k) - X(k-1)||_inf
+        double error_estimate = 2.0 * epsilon; // Инициализация, чтобы цикл do-while выполнился хотя бы раз
+        
         do {
             Vector X_prev = X_current;
 
@@ -75,12 +118,19 @@ public:
                 X_current.Set(i, (B.Get(i) - sum) / A.Get(i, i));
             }
 
-            error = 0.0;
+            error_diff_norm = 0.0;
             for (int i = 0; i < n; i++) {
                 double diff = std::abs(X_current.Get(i) - X_prev.Get(i));
-                if (diff > error) {
-                    error = diff;
+                if (diff > error_diff_norm) {
+                    error_diff_norm = diff;
                 }
+            }
+            if (alpha_norm < 1.0) {
+                // Строгая оценка погрешности: ||X(k) - X*||_inf
+                error_estimate = (alpha_norm / (1.0 - alpha_norm)) * error_diff_norm;
+            } else {
+                // Если сходимость не гарантирована, используем практический критерий (вторая часть скриншота)
+                error_estimate = error_diff_norm; 
             }
             iterations_count++;
 
@@ -89,7 +139,7 @@ public:
             //     std::cout << "x[" << i << "] = " << std::fixed << std::setprecision(6) << X_current.Get(i) << "\n";
             // }
 
-        } while (error > epsilon);
+        } while (error_estimate > epsilon);
 
         std::cout << "\nРешение системы (за " << iterations_count << " итераций):\n";
         for (int i = 0; i < n; i++) {

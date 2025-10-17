@@ -52,9 +52,9 @@ private:
     }
 
     // --- Норма приращения (максимум модуля компоненты) ---
-    static double norm_delta(double delta1, double delta2) {
-        return std::max(std::fabs(delta1), std::fabs(delta2));
-    }
+    // static double norm_delta(double delta1, double delta2) {
+    //     return std::max(std::fabs(delta1), std::fabs(delta2));
+    // }
 
     static void generate_plot_data(const std::string& filename = "plot_data.csv") {
 

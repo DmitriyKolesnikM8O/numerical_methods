@@ -47,10 +47,10 @@ public:
             //получаем следующую матрицу в последовательности
             A = R * Q;
             
-            std::cout << "\nИтерация " << k << ":\nМатрица A:\n";
-            A.Show();
-            std::cout << "Press Enter to continue...\n";
-            std::cin.get();
+            // std::cout << "\nИтерация " << k << ":\nМатрица A:\n";
+            // A.Show();
+            // std::cout << "Press Enter to continue...\n";
+            // std::cin.get();
             k++;
             
         } while (!Finish(A, epsilon));
@@ -58,6 +58,8 @@ public:
         std::cout << "\nИтоговое число итераций: " << k << "\n";
         std::cout << "\nМатрица A:\n";
         A.Show();
+
+        Matrix res = A.Subtract(Q_last * R_last);
 
         CheckOrthogonality(Q_last); 
     }
