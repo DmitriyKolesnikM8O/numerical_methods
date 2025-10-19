@@ -5,6 +5,7 @@
 #include <functional>
 #include <stdexcept>
 #include <fstream>
+#include "Vector.hpp"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -12,13 +13,15 @@
 
 class Task3_1 {
 public:
-    Task3_1(std::function<double(double)> func, const std::vector<double>& nodes, double point)
+    Task3_1(std::function<double(double)> func, const Vector& nodes, double point)
         : f(func), X(nodes), x_star(point) {
-        if (X.empty()) {
+        
+        if (X.GetSize() == 0) {
             throw std::invalid_argument("Вектор узлов не может быть пустым.");
         }
-        for (double x_val : X) {
-            Y.push_back(f(x_val));
+        Y = Vector(X.GetSize());
+        for (int i = 0; i < X.GetSize(); ++i) {
+            Y.Set(i, f(X.Get(i)));
         }
     }
 
@@ -30,7 +33,7 @@ public:
         double lagrange_result = SolveLagrange();
         
         // Вычисляем коэффициенты и значение Ньютона ОДИН РАЗ
-        std::vector<double> newton_coeffs;
+        Vector newton_coeffs;
         double newton_result = SolveNewton(newton_coeffs);
         
         if (std::abs(lagrange_result - newton_result) > 1e-9) {
@@ -46,16 +49,16 @@ public:
 
 private:
     std::function<double(double)> f;
-    std::vector<double> X;
-    std::vector<double> Y;
+    Vector X;
+    Vector Y;
     double x_star;
 
-    double EvaluateNewton(double x, const std::vector<double>& coeffs) {
-        double result = coeffs[0];
+    double EvaluateNewton(double x, const Vector& coeffs) {
+        double result = coeffs.Get(0);
         double term = 1.0;
-        for (size_t i = 1; i < coeffs.size(); ++i) {
-            term *= (x - X[i-1]);
-            result += coeffs[i] * term;
+        for (int i = 1; i < coeffs.GetSize(); ++i) {
+            term *= (x - X.Get(i - 1));
+            result += coeffs.Get(i) * term;
         }
         return result;
     }
@@ -65,9 +68,9 @@ private:
         std::cout << "Функция: y = cos(x) + x\n";
         std::cout << "Точка для вычисления погрешности X* = " << x_star << "\n";
         std::cout << "Узлы интерполяции:\n";
-        for (size_t i = 0; i < X.size(); ++i) {
-            std::cout << "  X[" << i << "] = " << std::setw(10) << X[i] 
-                      << "  |  Y[" << i << "] = " << std::setw(10) << Y[i] << "\n";
+        for (int i = 0; i < X.GetSize(); ++i) {
+            std::cout << "  X[" << i << "] = " << std::setw(10) << X.Get(i) 
+                      << "  |  Y[" << i << "] = " << std::setw(10) << Y.Get(i) << "\n";
         }
         std::cout << "------------------------\n\n";
     }
@@ -75,47 +78,49 @@ private:
     double SolveLagrange() {
         std::cout << "--- 1. Метод Лагранжа ---\n";
         double sum = 0.0;
-        for (size_t i = 0; i < X.size(); ++i) {
+        for (int i = 0; i < X.GetSize(); ++i) {
             double basis_polynomial = 1.0;
-            for (size_t j = 0; j < X.size(); ++j) {
+            for (int j = 0; j < X.GetSize(); ++j) {
                 if (i != j) {
-                    basis_polynomial *= (x_star - X[j]) / (X[i] - X[j]);
+                    basis_polynomial *= (x_star - X.Get(j)) / (X.Get(i) - X.Get(j));
                 }
             }
-            sum += Y[i] * basis_polynomial;
+            sum += Y.Get(i) * basis_polynomial;
         }
         std::cout << "Значение многочлена Лагранжа L(X*) в точке X* = " << x_star << " равно: " << sum << "\n";
         std::cout << "---------------------------\n\n";
         return sum;
     }
     
-    double SolveNewton(std::vector<double>& coeffs) {
+    double SolveNewton(Vector& coeffs) {
         std::cout << "--- 2. Метод Ньютона ---\n";
+        int n = X.GetSize();
         
-        std::vector<std::vector<double>> diffs(X.size());
-        for(size_t i = 0; i < X.size(); ++i) {
-            diffs[i].resize(X.size() - i);
-            diffs[i][0] = Y[i];
+        std::vector<Vector> diffs(n);
+        for(int i = 0; i < n; ++i) {
+            diffs[i] = Vector(n - i);
+            diffs[i].Set(0, Y.Get(i));
         }
-        for (size_t j = 1; j < X.size(); ++j) {
-            for (size_t i = 0; i < X.size() - j; ++i) {
-                diffs[i][j] = (diffs[i+1][j-1] - diffs[i][j-1]) / (X[i+j] - X[i]);
+        for (int j = 1; j < n; ++j) {
+            for (int i = 0; i < n - j; ++i) {
+                double val = (diffs[i+1].Get(j-1) - diffs[i].Get(j-1)) / (X.Get(i+j) - X.Get(i));
+                diffs[i].Set(j, val);
             }
         }
         
         // ВОЗВРАЩАЕМ ВЫВОД ТАБЛИЦЫ РАЗДЕЛЕННЫХ РАЗНОСТЕЙ
         std::cout << "Таблица разделенных разностей:\n";
-        for (size_t j = 0; j < X.size(); ++j) {
+        for (int j = 0; j < n; ++j) {
             std::cout << "  f[..]_" << j << ": ";
-            for (size_t i = 0; i < X.size() - j; ++i) {
-                std::cout << std::setw(12) << diffs[i][j];
+            for (int i = 0; i < n - j; ++i) {
+                std::cout << std::setw(12) << diffs[i].Get(j);
             }
             std::cout << std::endl;
         }
         
-        coeffs.clear();
-        for (size_t i = 0; i < diffs.size(); ++i) {
-            coeffs.push_back(diffs[0][i]);
+        coeffs = Vector(n);
+        for (int i = 0; i < n; ++i) {
+            coeffs.Set(i, diffs[0].Get(i));
         }
         
         double result = EvaluateNewton(x_star, coeffs);
@@ -125,20 +130,22 @@ private:
         return result;
     }
 
-    void PrintNewtonPolynomial(const std::vector<double>& coeffs) {
+    void PrintNewtonPolynomial(const Vector& coeffs) {
         std::cout << "--- Вид интерполяционного многочлена Ньютона ---\n";
-        std::cout << "P(x) = " << coeffs[0];
-        for (size_t i = 1; i < coeffs.size(); ++i) {
-            std::cout << (coeffs[i] >= 0 ? " + " : " - ") << std::abs(coeffs[i]);
-            for (size_t j = 0; j < i; ++j) {
-                std::cout << " * (x" << (X[j] >= 0 ? " - " : " + ") << std::abs(X[j]) << ")";
+        std::cout << "P(x) = " << coeffs.Get(0);
+        for (int i = 1; i < coeffs.GetSize(); ++i) {
+            double c = coeffs.Get(i);
+            std::cout << (c >= 0 ? " + " : " - ") << std::abs(c);
+            for (int j = 0; j < i; ++j) {
+                double node_val = X.Get(j);
+                std::cout << " * (x" << (node_val >= 0 ? " - " : " + ") << std::abs(node_val) << ")";
             }
         }
         std::cout << "\n-------------------------------------------------\n\n";
     }
 
     // Теперь функция ПРИНИМАЕТ коэффициенты, а не вычисляет их
-    void GeneratePlotData(const std::string& filename, const std::vector<double>& coeffs) {
+    void GeneratePlotData(const std::string& filename, const Vector& coeffs) {
         std::cout << "--- 4. Генерация данных для графика ---\n";
         
         std::ofstream outFile(filename);
@@ -149,8 +156,8 @@ private:
 
         outFile << "x,actual_f(x),polynomial_p(x)\n";
         
-        double start = X.front() - 0.1; // Немного расширим диапазон для наглядности
-        double end = X.back() + 0.1;
+        double start = X.Get(0) - 0.1; 
+        double end = X.Get(X.GetSize() - 1) + 0.1;
         int steps = 200;
         
         for (int i = 0; i <= steps; ++i) {
@@ -179,7 +186,12 @@ private:
 int main() {
     try {
         auto func = [](double x) { return cos(x) + x; };
-        std::vector<double> nodes = {0, M_PI / 6.0, M_PI / 4.0, M_PI / 2.0};
+        const int num_nodes = 4;
+        Vector nodes(num_nodes);
+        nodes.Set(0, 0.0);
+        nodes.Set(1, M_PI / 6.0);
+        nodes.Set(2, M_PI / 4.0);
+        nodes.Set(3, M_PI / 2.0);
         double x_star = 1.0;
 
         Task3_1 task(func, nodes, x_star);

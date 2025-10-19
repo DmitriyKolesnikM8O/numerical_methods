@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <stdexcept>
+#include <initializer_list>
 
 
 class Vector {
@@ -11,6 +12,7 @@ private:
     std::vector<double> data;
 
 public:
+    Vector(std::initializer_list<double> il) : size(il.size()), data(il) {}
     Vector() : size(0), data(0, 0.0) {}
     Vector(int n) : size(n), data(n, 0.0) {}
 
