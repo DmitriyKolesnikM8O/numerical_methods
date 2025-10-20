@@ -7,6 +7,7 @@
 #include <fstream>
 #include "Vector.hpp"
 
+
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -98,9 +99,11 @@ private:
         
         std::vector<Vector> diffs(n);
         for(int i = 0; i < n; ++i) {
+            //разделенная разность 0-го порядка
             diffs[i] = Vector(n - i);
             diffs[i].Set(0, Y.Get(i));
         }
+        //j определяет порядок разделенной разности
         for (int j = 1; j < n; ++j) {
             for (int i = 0; i < n - j; ++i) {
                 double val = (diffs[i+1].Get(j-1) - diffs[i].Get(j-1)) / (X.Get(i+j) - X.Get(i));
@@ -118,6 +121,7 @@ private:
             std::cout << std::endl;
         }
         
+        //записываем разделенные разности для формулы
         coeffs = Vector(n);
         for (int i = 0; i < n; ++i) {
             coeffs.Set(i, diffs[0].Get(i));
@@ -144,7 +148,7 @@ private:
         std::cout << "\n-------------------------------------------------\n\n";
     }
 
-    // Теперь функция ПРИНИМАЕТ коэффициенты, а не вычисляет их
+    //точки графика для сравнения точной функции и интерполяционного многочлена
     void GeneratePlotData(const std::string& filename, const Vector& coeffs) {
         std::cout << "--- 4. Генерация данных для графика ---\n";
         
@@ -172,13 +176,63 @@ private:
         std::cout << "-------------------------------------------\n\n";
     }
 
+    double CalculateOmega(double x) {
+        double omega = 1.0;
+        for (int i = 0; i < X.GetSize(); ++i) {
+            omega *= (x - X.Get(i));
+        }
+        return omega;
+    }
+
     void CalculateError(double approx_value) {
-        std::cout << "--- 5. Вычисление погрешности ---\n"; // Изменил номер шага для порядка
+        std::cout << "--- 5. Вычисление погрешности ---\n";
+        
+        // 1. Фактическая (апостериорная) погрешность
         double actual_value = f(x_star);
-        double error = std::abs(actual_value - approx_value);
-        std::cout << "Точное значение функции f(X*):      " << actual_value << "\n";
-        std::cout << "Приближенное значение P(X*):      " << approx_value << "\n";
-        std::cout << "Абсолютная погрешность |f(X*) - P(X*)|: " << error << "\n";
+        double error_actual = std::abs(actual_value - approx_value);
+        
+        std::cout << "Точное значение функции f(X*):    " << actual_value << "\n";
+        std::cout << "Приближенное значение P(X*):    " << approx_value << "\n";
+        std::cout << "Абсолютная погрешность |f(X*) - P(X*)|: " << error_actual << "\n";
+
+        // 2. Теоретическая (априорная) оценка погрешности
+
+        // n - степень многочлена, n+1 - количество узлов
+        int n_plus_1 = X.GetSize(); // 4
+        
+        // M_{n+1} = max |f^(n+1)(xi)|
+        // Для f(x)=cos(x)+x, f^(4)(x) = cos(x). Max |cos(x)| на [0, pi/2] равен 1.0
+        const double M_n_plus_1 = 1.0; 
+        
+        // (n+1)!
+        double factorial_n_plus_1 = 1.0;
+        for (int k = 1; k <= n_plus_1; ++k) {
+            factorial_n_plus_1 *= k;
+        }
+
+        // |omega_{n+1}(X*)| = | product (X* - Xi) |
+        double omega_x_star = CalculateOmega(x_star);
+        double abs_omega_x_star = std::abs(omega_x_star);
+        
+        // Оценка: |E_n(X*)| <= M_{n+1} / (n+1)! * |omega_{n+1}(X*)|
+        double error_theoretical_estimate = (M_n_plus_1 / factorial_n_plus_1) * abs_omega_x_star;
+
+        std::cout << "\n--- Теоретическая (априорная) оценка погрешности ---\n";
+        std::cout << "  n+1 (количество узлов) = " << n_plus_1 << "\n";
+        std::cout << "  M_{n+1} = max |f^(" << n_plus_1 << ")(xi)| = " << M_n_plus_1 << "\n";
+        std::cout << "  (n+1)! = " << factorial_n_plus_1 << "\n";
+        std::cout << "  |omega_{n+1}(X*)| = " << abs_omega_x_star << "\n";
+        std::cout << "  Оценка: E_n(X*) <= M_{n+1}/(n+1)! * |omega_{n+1}(X*)| \n";
+        std::cout << "  Теоретическая оценка E_n(X*) <= " << error_theoretical_estimate << "\n";
+        
+        // Проверка: фактическая ошибка должна быть меньше или равна оценке
+        if (error_actual > error_theoretical_estimate + 1e-10) {
+            std::cerr << "Внимание: Фактическая ошибка (" << error_actual << ") ПРЕВЫШАЕТ теоретическую оценку (" << error_theoretical_estimate << ")!\n";
+            std::cerr << "Проверьте вычисление M_{n+1} или узлы.\n";
+        } else {
+            std::cout << "  Проверка: Фактическая ошибка меньше теоретической оценки. (Корректно)\n";
+        }
+        
         std::cout << "------------------------------------\n";
     }
 };

@@ -19,11 +19,15 @@ public:
     void Do() {
         std::cout << std::fixed << std::setprecision(8);
         PrintInitialData();
+
+        //сохраняем длину интервалов
         int n = x.GetSize() - 1;
         Vector h(n);
         for (int i = 0; i < n; ++i) h.Set(i, x.Get(i+1) - x.Get(i));
 
         Vector c_full = SolveTridiagonalSystem(n, h);
+
+        //копируем значения вторых производных в финальный вектор
         for(int i = 0; i < n; ++i) c.Set(i, c_full.Get(i));
 
         for (int i = 0; i < n; ++i) {
@@ -38,8 +42,7 @@ public:
         }
         
         PrintSplineCoefficients();
-
-        // <<<--- НОВЫЙ БЛОК: ВЫЗОВ ПРОВЕРКИ ---<<<
+        
         VerifySpline(1e-7);
 
         EvaluateAtPoint();
@@ -96,7 +99,7 @@ private:
     Vector x, f, a, b, c, d;
     double x_star;
 
-    // Вспомогательные функции для вычислений и проверок
+    // Определяем, к какому интервалу принадлежит заданная точка
     int FindInterval(double point) const {
         for (int i = 0; i < x.GetSize() - 1; ++i) {
             if (point >= x.Get(i) && point <= x.Get(i+1)) {
@@ -117,6 +120,7 @@ private:
         return a.Get(i) + b.Get(i) * dx + c.Get(i) * dx * dx + d.Get(i) * dx * dx * dx;
     }
 
+    //вычисление производной: a + b(x - x_{i}) + c(x - x_{i})^2 + d(x - x_{i})^3
     double EvaluateDerivative(double point, int order, int interval_idx = -1) const {
         int i = (interval_idx == -1) ? FindInterval(point) : interval_idx;
         if (i == -1) return NAN;
@@ -127,27 +131,45 @@ private:
         if (order == 2) { // Вторая производная
             return 2.0 * c.Get(i) + 6.0 * d.Get(i) * dx;
         }
-        return Evaluate(point); // По умолчанию (order=0) возвращаем значение
+        return Evaluate(point);
     }
 
+    // решаем систему из методички
     Vector SolveTridiagonalSystem(int n, const Vector& h) {
+
+        //формируем систему
         int size = n - 1;
         if (size <= 0) return Vector(n);
         Vector A(size), B(size), C(size), F(size);
         for (int i = 0; i < size; ++i) {
             int j = i + 2;
+            //2(h_{i - 1} + h_{i}) - кэф при c_{i}
             B.Set(i, 2.0 * (h.Get(j-2) + h.Get(j-1)));
+            // h_{i - 1} - кэф при c_{i - 1}
             if (i > 0) A.Set(i, h.Get(j-2));
+            //h_i - кэф при c_{i+1}
             if (i < size - 1) C.Set(i, h.Get(j-1));
+            //правая часть
             F.Set(i, 3.0 * (((f.Get(j) - f.Get(j-1)) / h.Get(j-1)) - ((f.Get(j-1) - f.Get(j-2)) / h.Get(j-2))));
         }
+
+        //метод прогонки
+
+        //прямой ход
         Vector alpha(size), beta(size);
-        alpha.Set(0, -C.Get(0) / B.Get(0)); beta.Set(0, F.Get(0) / B.Get(0));
+        //начальные формулы
+        alpha.Set(0, -C.Get(0) / B.Get(0)); 
+        beta.Set(0, F.Get(0) / B.Get(0));
+        //цикл для вычисления альф и бет
         for (int i = 1; i < size; ++i) {
             double denom = B.Get(i) + A.Get(i) * alpha.Get(i-1);
+
+            //рекуррентные формулы
             alpha.Set(i, -C.Get(i) / denom);
             beta.Set(i, (F.Get(i) - A.Get(i) * beta.Get(i-1)) / denom);
         }
+
+        //обратный ход
         Vector result_c(size);
         result_c.Set(size-1, beta.Get(size-1));
         for (int i = size - 2; i >= 0; --i) {
