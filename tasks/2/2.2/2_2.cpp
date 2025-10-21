@@ -13,7 +13,7 @@ using namespace std;
 class Task2_2 {
 private:
     
-    static constexpr double TAU = 0.0005; 
+    static constexpr double TAU = 0.00005;
     
     // Начальное приближение (определено графически)
     static constexpr double X1_INIT = 0.42; 
@@ -133,15 +133,14 @@ public:
         double norm_G_prime = std::max(norm_row1, norm_row2); //коэф сжатия
 
         // std::cout << "Расчетный коэффициент сжатия q = ||G'(X0)||inf: " << norm_G_prime << endl;
-        
-    //    if (norm_G_prime < 1.0) {
-    //         std::cout << "Условие сходимости: ||G'(X0)||inf = " 
-    //                   << norm_G_prime << " < 1. Сходимость ожидается.\n";
-    //     } else {
-    //          // Сохраняем вывод для информации
-    //          std::cout << "Проверка сходимости: ||G'(X0)||inf = " 
-    //                    << norm_G_prime << " >= 1 (достаточное условие не выполнено, но сходимость возможна).\n";
-    //     }
+
+        if (norm_G_prime < 1.0) {
+                std::cout << "Условие сходимости: ||G'(X0)||inf < 1. Сходимость ожидается.\n";
+        } else {
+             // Сохраняем вывод для информации
+             std::cout << "Проверка сходимости: ||G'(X0)||inf = " 
+                       << norm_G_prime << " >= 1 (достаточное условие не выполнено, но сходимость возможна).\n";
+        }
 
 
         double x1_fp = X1_INIT;
@@ -184,14 +183,14 @@ public:
                 double bound_err = (norm_G_prime / std::fabs(1.0 - norm_G_prime)) * err;
                 fp_errors_bound.push_back(bound_err); 
                 
-                // Главный критерий остановки: Норма невязки ||F(X)|| <= eps
+                //Норма невязки ||F(X)|| <= eps
                 current_norm_F = std::max(std::fabs(F1(x1_fp, x2_fp)), std::fabs(F2(x1_fp, x2_fp)));
 
                 iterations_fp++;
-                if (iterations_fp > MAX_ITER_FP) { 
-                    throw std::runtime_error("Метод простой итерации не сошелся за " + std::to_string(MAX_ITER_FP) + " шагов.");
-                }
-            } while (current_norm_F >= eps); // Использование невязки как критерия
+                // if (iterations_fp > MAX_ITER_FP) { 
+                //     throw std::runtime_error("Метод простой итерации не сошелся за " + std::to_string(MAX_ITER_FP) + " шагов.");
+                // }
+            } while (fp_errors_bound.back() >= eps);
 
         } catch (const std::exception& e) {
             std::cerr << "\nОшибка в методе простой итерации: " << e.what() << std::endl;

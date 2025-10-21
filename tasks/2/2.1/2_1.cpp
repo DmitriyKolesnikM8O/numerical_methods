@@ -121,7 +121,13 @@ public:
         double x0_fp = (A + B) / 2.0; // Начальное приближение
 
         //проверка условия сходимости
-        double q_max = 1.0 / (2.0 * (A + 1.0)); // g'(x) = 1/(2(x+1)). Max на x=A=0
+        double q_1 = 1.0 / (2.0 * (B + 1.0));
+        double q_2 = 1.0 / (2.0 * (A + 1.0)); // g'(x) = 1/(2(x+1)). Max на x=A=0
+
+        double abs_q1 = std::fabs(q_1);
+        double abs_q2 = std::fabs(q_2);
+        double q_max = std::max(abs_q1, abs_q2);
+        
         if (q_max >= 1.0) {
             throw std::runtime_error("Метод простой итерации: Условие сходимости |g'(x)| < 1 не выполнено (q_max=" + std::to_string(q_max) + ").");
         }
@@ -141,7 +147,7 @@ public:
         fp_errors_bound.push_back(error_bound_k1);
 
         
-        while (std::fabs(x_fp - x0_fp) >= eps) {
+        while (std::fabs(error_bound_k1) >= eps) {
             x0_fp = x_fp;
             x_fp = g(x0_fp);
             
@@ -152,11 +158,11 @@ public:
             
             
             double diff_k = std::fabs(x_fp - x0_fp);
-            double error_bound_k = (q_max / (1.0 - q_max)) * diff_k;
+            error_bound_k1 = (q_max / (1.0 - q_max)) * diff_k;
             
             
             fp_errors_diff.push_back(diff_k);
-            fp_errors_bound.push_back(error_bound_k);
+            fp_errors_bound.push_back(error_bound_k1);
             
             
             iterations_fp++;
