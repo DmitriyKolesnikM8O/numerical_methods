@@ -13,8 +13,7 @@ using namespace std;
 class Task2_2 {
 private:
     
-    // Увеличиваем TAU для ускорения сходимости (0.1 вместо 0.01)
-    static constexpr double TAU = 0.05; 
+    static constexpr double TAU = 0.0005; 
     
     // Начальное приближение (определено графически)
     static constexpr double X1_INIT = 0.42; 
@@ -131,13 +130,15 @@ public:
         // 3. Расчет нормы (Используем бесконечную норму: max сумма модулей по строкам)
         double norm_row1 = std::fabs(G_11) + std::fabs(G_12);
         double norm_row2 = std::fabs(G_21) + std::fabs(G_22);
-        double norm_G_prime = std::max(norm_row1, norm_row2);
+        double norm_G_prime = std::max(norm_row1, norm_row2); //коэф сжатия
+
+        // std::cout << "Расчетный коэффициент сжатия q = ||G'(X0)||inf: " << norm_G_prime << endl;
         
     //    if (norm_G_prime < 1.0) {
     //         std::cout << "Условие сходимости: ||G'(X0)||inf = " 
     //                   << norm_G_prime << " < 1. Сходимость ожидается.\n";
     //     } else {
-    //          // Сохраняем вывод для информации, но убираем 'ВНИМАНИЕ' для чистоты
+    //          // Сохраняем вывод для информации
     //          std::cout << "Проверка сходимости: ||G'(X0)||inf = " 
     //                    << norm_G_prime << " >= 1 (достаточное условие не выполнено, но сходимость возможна).\n";
     //     }
@@ -147,6 +148,7 @@ public:
         double x2_fp = X2_INIT;
         int iterations_fp = 0;
         vector<double> fp_errors;
+        vector<double> fp_errors_bound;
         const int MAX_ITER_FP = 10000;
 
         try {
@@ -161,6 +163,9 @@ public:
             
             double initial_err = std::max(std::fabs(x1_fp - x1_old), std::fabs(x2_fp - x2_old));
             fp_errors.push_back(initial_err);
+
+            double bound_err = (norm_G_prime / std::fabs(1.0 - norm_G_prime)) * initial_err;
+            fp_errors_bound.push_back(bound_err); 
             iterations_fp++;
             
             // Цикл: пока норма невязки больше точности (eps)
@@ -175,6 +180,9 @@ public:
                 // Оценка погрешности (приращения)
                 double err = std::max(std::fabs(x1_fp - x1_old), std::fabs(x2_fp - x2_old));
                 fp_errors.push_back(err);
+
+                double bound_err = (norm_G_prime / std::fabs(1.0 - norm_G_prime)) * err;
+                fp_errors_bound.push_back(bound_err); 
                 
                 // Главный критерий остановки: Норма невязки ||F(X)|| <= eps
                 current_norm_F = std::max(std::fabs(F1(x1_fp, x2_fp)), std::fabs(F2(x1_fp, x2_fp)));
@@ -201,11 +209,13 @@ public:
         std::cout << "\nЗависимость погрешности от количества итераций:\n";
         size_t limit = std::min((size_t)10, fp_errors.size());
         for (size_t i = 0; i < limit; ++i) {
-            std::cout << "Итерация " << (i + 1) << ": погрешность = " << fp_errors[i] << endl;
+            std::cout << "Итерация " << (i + 1) << ": погрешность = " << fp_errors[i] 
+            << "; погрешность из методички = " << fp_errors_bound[i] << endl;
         }
         if (fp_errors.size() > 10) {
             std::cout << "...\n";
-            std::cout << "Итерация " << fp_errors.size() << ": погрешность = " << fp_errors.back() << endl;
+            std::cout << "Итерация " << fp_errors.size() << ": погрешность = " << fp_errors.back() 
+            << "; погрешность из методички = " << fp_errors_bound.back() << endl;
         }
 
         // ---------------------------------------------------
@@ -217,7 +227,10 @@ public:
         vector<double> newton_errors;
         
         try {
+            double current_norm_F;
             do {
+                
+                
                 double x1_old = x1_newton;
                 double x2_old = x2_newton;
 
@@ -247,11 +260,13 @@ public:
                 double err = std::max(std::fabs(delta1), std::fabs(delta2));
                 newton_errors.push_back(err);
 
+                current_norm_F = std::max(std::fabs(F1(x1_newton, x2_newton)), std::fabs(F2(x1_newton, x2_newton)));
+
                 iterations_newton++;
                 if (iterations_newton > 100) {
                     throw std::runtime_error("Метод Ньютона не сошелся за 100 шагов.");
                 }
-            } while (newton_errors.back() >= eps);
+            } while (newton_errors.back() >= eps || current_norm_F >= eps);
         } catch (const std::exception& e) {
             std::cerr << "\nОшибка в методе Ньютона: " << e.what() << std::endl;
             return;
