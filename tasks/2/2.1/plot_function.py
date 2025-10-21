@@ -1,4 +1,3 @@
-# Это твой "черновик", чтобы просто найти корень глазами
 import numpy as np
 import matplotlib.pyplot as plt
 

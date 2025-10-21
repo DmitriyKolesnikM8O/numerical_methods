@@ -129,23 +129,40 @@ public:
 
         double x_fp = g(x0_fp); //первая итерация
         int iterations_fp = 1;
-        vector<double> fp_errors;
+        vector<double> fp_errors_diff; 
+        vector<double> fp_errors_bound;
 
-        fp_errors.push_back(std::fabs(x_fp - x0_fp));
+        // Добавляем результаты первой итерации
+        double diff_k1 = std::fabs(x_fp - x0_fp);
+        fp_errors_diff.push_back(diff_k1);
+
+        // Апостериорная оценка для k=1 (использует |x1 - x0|)
+        double error_bound_k1 = (q_max / (1.0 - q_max)) * diff_k1;
+        fp_errors_bound.push_back(error_bound_k1);
+
         
         while (std::fabs(x_fp - x0_fp) >= eps) {
             x0_fp = x_fp;
             x_fp = g(x0_fp);
-
+            
+            
             if (x_fp < A || x_fp > B) {
                 throw std::runtime_error("Метод простой итерации: Нарушено условие g(x) in [A, B]. Итерация вышла за границы.");
             }
-
-
-            fp_errors.push_back(std::fabs(x_fp - x0_fp));
+            
+            
+            double diff_k = std::fabs(x_fp - x0_fp);
+            double error_bound_k = (q_max / (1.0 - q_max)) * diff_k;
+            
+            
+            fp_errors_diff.push_back(diff_k);
+            fp_errors_bound.push_back(error_bound_k);
+            
+            
             iterations_fp++;
-            if (iterations_fp > 100) { // Уменьшено ограничение для быстросходящегося метода
-                std::cout << "Итерации не сошлись за 100 шагов (метод простой итерации)." << std::endl;
+            
+            if (iterations_fp > 1000) { 
+                std::cout << "Итерации не сошлись за 1000 шагов (метод простой итерации)." << std::endl;
                 return;
             }
         }
@@ -157,9 +174,12 @@ public:
         std::cout << "Количество итераций: " << iterations_fp << endl;
 
         std::cout << "\nЗависимость погрешности от количества итераций:" << endl;
-        for (size_t i = 0; i < fp_errors.size(); ++i) {
-            std::cout << "Итерация " << (i + 1) << ": погрешность = " << fp_errors[i] << endl;
+        for (size_t i = 0; i < fp_errors_diff.size(); ++i) {
+            std::cout << "Итерация " << (i + 1) << ": погрешность абсолютная = " << fp_errors_diff[i] 
+            << "; погрешность из методички: " << fp_errors_bound[i] << endl;
         }
+
+        
 
         // ---------------------------------------------------
         // Метод Ньютона
