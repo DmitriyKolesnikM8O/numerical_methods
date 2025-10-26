@@ -160,10 +160,15 @@ int main() {
         Vector nodes(6);
         nodes.Set(0, -1.0); nodes.Set(1, 0.0); nodes.Set(2, 1.0);
         nodes.Set(3, 2.0); nodes.Set(4, 3.0); nodes.Set(5, 4.0);
+        // nodes.Set(0, -0.9); nodes.Set(1, 0.0); nodes.Set(2, 0.9);
+        // nodes.Set(3, 1.8); nodes.Set(4, 2.7); nodes.Set(5, 3.6);
 
         Vector values(6);
         values.Set(0, -0.4597); values.Set(1, 1.0); values.Set(2, 1.5403);
         values.Set(3, 1.5839); values.Set(4, 2.010); values.Set(5, 3.3464);
+        // values.Set(0, -0.36892); values.Set(1, 0.0); values.Set(2, 0.36892);
+        // values.Set(3, 0.85408); values.Set(4, 1.7856); values.Set(5, 6.3138);
+
 
         Task3_3 task(nodes, values);
         task.Do();
