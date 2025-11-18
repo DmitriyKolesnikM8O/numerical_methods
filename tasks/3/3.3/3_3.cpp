@@ -28,12 +28,16 @@ private:
         int n = B.GetSize();
         // Прямой ход
         for (int i = 0; i < n; ++i) {
+
+            // ищем наибольший элемент
             int pivot = i;
             for (int j = i + 1; j < n; ++j) {
                 if (std::abs(A_flat.Get(j * n + i)) > std::abs(A_flat.Get(pivot * n + i))) {
                     pivot = j;
                 }
             }
+
+            // меняем строки, чтобы главный был на диагонали
             for (int k = 0; k < n; ++k) {
                 double temp = A_flat.Get(i * n + k);
                 A_flat.Set(i * n + k, A_flat.Get(pivot * n + k));
@@ -43,10 +47,11 @@ private:
 
             if (std::abs(A_flat.Get(i * n + i)) < 1e-10) throw std::runtime_error("Система вырождена.");
 
+            // по всем строкам ниже диагонали
             for (int j = i + 1; j < n; ++j) {
-                double factor = A_flat.Get(j * n + i) / A_flat.Get(i * n + i);
-                B.Set(j, B.Get(j) - factor * B.Get(i));
-                for (int k = i; k < n; ++k) {
+                double factor = A_flat.Get(j * n + i) / A_flat.Get(i * n + i); // вычисляем множитель
+                B.Set(j, B.Get(j) - factor * B.Get(i)); // вычитаем из правой части
+                for (int k = i; k < n; ++k) { // вычитаем из самой строки
                     double val = A_flat.Get(j * n + k) - factor * A_flat.Get(i * n + k);
                     A_flat.Set(j * n + k, val);
                 }
@@ -70,6 +75,7 @@ private:
         std::cout << "\n--- а) Построение многочлена 1-й степени F1(x) = a0 + a1*x ---\n";
         int n_points = x.GetSize();
         
+        // sx - сумма x, sy - сумма y, sx2 - сумма квадратов x, sxy - сумма x*y
         double sx = 0, sy = 0, sx2 = 0, sxy = 0;
         for (int i = 0; i < n_points; ++i) {
             double xi = x.Get(i), yi = y.Get(i);
@@ -92,12 +98,17 @@ private:
         
         std::cout << "Решение системы: a0 = " << a0 << ", a1 = " << a1 << "\n";
         std::cout << "Приближающий многочлен: F1(x) = " << a0 << (a1 >= 0 ? " + " : " - ") << std::abs(a1) << "*x\n\n";
-        
+        std::cout << std::setw(5) << "i" << std::setw(15) << "x_i" << std::setw(15) << "F1(x_i)" << "\n";
+        std::cout << "-------------------------------------\n";
         double error_sum = 0;
         for (int i = 0; i < n_points; ++i) {
-            double fi = a0 + a1 * x.Get(i);
+            double xi = x.Get(i);
+            double fi = a0 + a1 * xi;
             error_sum += (fi - y.Get(i)) * (fi - y.Get(i));
+            std::cout << std::setw(5) << i << std::setw(15) << xi << std::setw(15) << fi << "\n";
         }
+        std::cout << "-------------------------------------\n\n";
+
         std::cout << "Сумма квадратов ошибок Ф = " << error_sum << "\n";
     }
 
@@ -136,12 +147,17 @@ private:
         std::cout << "Приближающий многочлен: F2(x) = " << a0 << (a1 >= 0 ? " + " : " - ") << std::abs(a1) 
                   << "*x" << (a2 >= 0 ? " + " : " - ") << std::abs(a2) << "*x^2\n\n";
 
+        std::cout << std::setw(5) << "i" << std::setw(15) << "x_i" << std::setw(15) << "F2(x_i)" << "\n";
+        std::cout << "-------------------------------------\n";
         double error_sum = 0;
         for (int i = 0; i < n_points; ++i) {
             double xi = x.Get(i);
             double fi = a0 + a1 * xi + a2 * xi * xi;
             error_sum += (fi - y.Get(i)) * (fi - y.Get(i));
+            std::cout << std::setw(5) << i << std::setw(15) << xi << std::setw(15) << fi << "\n";
         }
+        std::cout << "-------------------------------------\n\n";
+
         std::cout << "Сумма квадратов ошибок Ф = " << error_sum << "\n";
     }
 
@@ -158,16 +174,28 @@ int main() {
     try {
         
         Vector nodes(6);
+        Vector values(6);
+
         nodes.Set(0, -1.0); nodes.Set(1, 0.0); nodes.Set(2, 1.0);
         nodes.Set(3, 2.0); nodes.Set(4, 3.0); nodes.Set(5, 4.0);
+        values.Set(0, -0.4597); values.Set(1, 1.0); values.Set(2, 1.5403);
+        values.Set(3, 1.5839); values.Set(4, 2.010); values.Set(5, 3.3464);
+        
+
+
+        // другой вариант
         // nodes.Set(0, -0.9); nodes.Set(1, 0.0); nodes.Set(2, 0.9);
         // nodes.Set(3, 1.8); nodes.Set(4, 2.7); nodes.Set(5, 3.6);
 
-        Vector values(6);
-        values.Set(0, -0.4597); values.Set(1, 1.0); values.Set(2, 1.5403);
-        values.Set(3, 1.5839); values.Set(4, 2.010); values.Set(5, 3.3464);
         // values.Set(0, -0.36892); values.Set(1, 0.0); values.Set(2, 0.36892);
         // values.Set(3, 0.85408); values.Set(4, 1.7856); values.Set(5, 6.3138);
+
+        // для методички
+        // nodes.Set(0, 0.0); nodes.Set(1, 1.7); nodes.Set(2, 3.4);
+        // nodes.Set(3, 5.1); nodes.Set(4, 6.8); nodes.Set(5, 8.5);
+
+        // values.Set(0, 0.0); values.Set(1, 1.3038); values.Set(2, 1.8439);
+        // values.Set(3, 2.2583); values.Set(4, 2.6077); values.Set(5, 2.9155);
 
 
         Task3_3 task(nodes, values);
