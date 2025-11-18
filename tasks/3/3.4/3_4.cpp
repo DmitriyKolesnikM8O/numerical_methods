@@ -118,6 +118,7 @@ private:
         }
     }
     
+    // находим номер строки, который соответствует моей точке
     int FindNodeIndex() const {
         for (int i = 0; i < x.GetSize(); ++i) {
             if (std::abs(x.Get(i) - x_star) < 1e-9) return i;
