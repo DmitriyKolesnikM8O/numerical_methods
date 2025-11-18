@@ -199,14 +199,64 @@ private:
     }
     void EvaluateAtPoint() {
         std::cout << "--- Шаг 3 (ФИНАЛ): Вычисление значения в точке X* ---\n";
-        int i = FindInterval(x_star);
-        if (i == -1) { std::cout << "Точка X*=" << x_star << " находится вне диапазона.\n"; return; }
-        double dx = x_star - x.Get(i);
-        double result = a.Get(i) + b.Get(i) * dx + c.Get(i) * dx * dx + d.Get(i) * dx * dx * dx;
-        std::cout << "Точка X* = " << x_star << " попадает в интервал [" << x.Get(i) << ", " << x.Get(i+1) << "].\n";
-        std::cout << "Используем сплайн S" << i + 1 << "(x).\n";
-        std::cout << "S(X*) = a + b(X*-x_i) + c(X*-x_i)^2 + d(X*-x_i)^3\n";
-        std::cout << "S(" << x_star << ") = " << result << "\n";
+        
+        // Поиск нужного интервала
+        int interval_idx = -1;
+        for (int i = 0; i < x.GetSize() - 1; ++i) {
+            if (x_star >= x.Get(i) && x_star <= x.Get(i+1)) {
+                interval_idx = i;
+                break;
+            }
+        }
+        
+        if (interval_idx == -1) {
+            std::cout << "Точка X*=" << x_star << " находится вне диапазона интерполяции.\n";
+            return;
+        }
+
+        // Индекс сплайна (S1, S2, и т.д.) для вывода
+        const int j = interval_idx + 1;
+
+        std::cout << "Точка X* = " << x_star << " попадает в интервал [" << x.Get(interval_idx) << ", " << x.Get(interval_idx+1) << "].\n";
+        std::cout << "Используем сплайн S" << j << "(x).\n\n";
+        
+        // --- НОВЫЙ БЛОК: Детальный пошаговый расчет ---
+        std::cout << "Формула: S" << j << "(x) = a" << j << " + b" << j << "*(x-x" << j-1 << ") + c" << j << "*(x-x" << j-1 << ")^2 + d" << j << "*(x-x" << j-1 << ")^3\n\n";
+        
+        double xi = x.Get(interval_idx);
+        double dx = x_star - xi;
+
+        double val_a = a.Get(interval_idx);
+        double val_b = b.Get(interval_idx);
+        double val_c = c.Get(interval_idx);
+        double val_d = d.Get(interval_idx);
+
+        double term_b = val_b * dx;
+        double term_c = val_c * dx * dx;
+        double term_d = val_d * dx * dx * dx;
+        
+        double result = val_a + term_b + term_c + term_d;
+
+        std::cout << "Подставляем значения:\n";
+        std::cout << "  x* = " << x_star << "\n";
+        std::cout << "  x" << j-1 << " = " << xi << "\n";
+        std::cout << "  (x* - x" << j-1 << ") = " << dx << "\n\n";
+
+        std::cout << "  a" << j << " = " << val_a << "\n";
+        std::cout << "  b" << j << " = " << val_b << "\n";
+        std::cout << "  c" << j << " = " << val_c << "\n";
+        std::cout << "  d" << j << " = " << val_d << "\n\n";
+
+        std::cout << "Вычисляем каждый член:\n";
+        // std::showpos временно включает печать знака '+' для положительных чисел
+        std::cout << "  a" << j << "                       = " << val_a << "\n";
+        std::cout << "  b" << j << " * " << dx << "            = " << term_b << "\n";
+        std::cout << "  c" << j << " * (" << dx << ")^2         = " << term_c << "\n";
+        std::cout << "  d" << j << " * (" << dx << ")^3         = " << term_d << "\n";
+        std::cout << std::noshowpos; // Отключаем обратно
+
+        std::cout << "---------------------------------------------------------\n";
+        std::cout << "Итого S(" << x_star << ") = " << result << "\n";
         std::cout << "---------------------------------------------------------\n";
     }
 };
