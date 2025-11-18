@@ -116,37 +116,46 @@ private:
         // --- Прямоугольники (p=2) ---
         {
             double err_rr = std::abs((fine_res.rect - coarse_res.rect) / (pow(k, 2) - 1.0));
+            double refined_value = fine_res.rect + err_rr;
             // Формула (3.24): R <= (b-a)/24 * h^2 * M2
             double err_theory = (b_minus_a / 24.0) * pow(h2, 2) * M2;
             double err_true = std::abs(exact_value - fine_res.rect);
             std::cout << std::left << std::setw(20) << "Прямоугольников"
                       << std::right << std::setw(18) << err_rr
                       << std::right << std::setw(22) << err_theory
-                      << std::right << std::setw(20) << err_true << "\n";
+                      << std::right << std::setw(20) << err_true
+                      << std::right << std::setw(20) << refined_value << "\n";
         }
 
         
         {
+               
             double err_rr = std::abs((fine_res.trap - coarse_res.trap) / (pow(k, 2) - 1.0));
+            double refined_value = fine_res.trap + err_rr;
             // Формула (3.26): R <= (b-a)/12 * h^2 * M2 (в методичке опечатка, должно быть (b-a) * h^2 / 12)
             double err_theory = (b_minus_a / 12.0) * pow(h2, 2) * M2;
             double err_true = std::abs(exact_value - fine_res.trap);
             std::cout << std::left << std::setw(20) << "Трапеций"
                       << std::right << std::setw(18) << err_rr
                       << std::right << std::setw(22) << err_theory
-                      << std::right << std::setw(20) << err_true << "\n";
+                      << std::right << std::setw(20) << err_true
+                      << std::right << std::setw(20) << refined_value << "\n";
         }
 
         // --- Симпсон (p=4) ---
         {
+            
             double err_rr = std::abs((fine_res.simp - coarse_res.simp) / (pow(k, 4) - 1.0));
+            double refined_value = fine_res.simp + err_rr;
             // Формула (3.29): R <= (b-a)/180 * h^4 * M4
             double err_theory = (b_minus_a / 180.0) * pow(h2, 4) * M4;
             double err_true = std::abs(exact_value - fine_res.simp);
             std::cout << std::left << std::setw(20) << "Симпсона"
                       << std::right << std::setw(18) << err_rr
                       << std::right << std::setw(22) << err_theory
-                      << std::right << std::setw(20) << err_true << "\n";
+                      << std::right << std::setw(20) << err_true
+                      << std::right << std::setw(20) << refined_value << "\n";
+            
         }
     }
 
