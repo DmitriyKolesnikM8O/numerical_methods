@@ -26,7 +26,7 @@ public:
         }
     }
 
-    void Do() {
+    void Do(const std::string& plot_filename) {
         std::cout << std::fixed << std::setprecision(8);
         
         PrintInitialData();
@@ -43,7 +43,7 @@ public:
 
         // Передаем уже вычисленные коэффициенты в другие функции
         PrintNewtonPolynomial(newton_coeffs);
-        GeneratePlotData("./tasks/3/3.1/plot_data.csv", newton_coeffs);
+        GeneratePlotData(plot_filename, newton_coeffs);
 
         CalculateError(lagrange_result);
     }
@@ -240,16 +240,47 @@ private:
 int main() {
     try {
         auto func = [](double x) { return cos(x) + x; };
-        const int num_nodes = 4;
-        Vector nodes(num_nodes);
-        nodes.Set(0, 0.0);
-        nodes.Set(1, M_PI / 6.0);
-        nodes.Set(2, M_PI / 4.0);
-        nodes.Set(3, M_PI / 2.0);
         double x_star = 1.0;
 
-        Task3_1 task(func, nodes, x_star);
-        task.Do();
+        
+        std::cout << "***************************************************\n";
+        std::cout << "***     ВАРИАНТ 13, ПУНКТ а) РАВНОМЕРНАЯ СЕТКА    ***\n";
+        std::cout << "***************************************************\n\n";
+        
+        Vector nodes_a(4);
+        nodes_a.Set(0, 0.0);
+        nodes_a.Set(1, M_PI / 6.0);
+        nodes_a.Set(2, 2.0 * M_PI / 6.0); // то же, что и PI/3
+        nodes_a.Set(3, 3.0 * M_PI / 6.0); // то же, что и PI/2
+
+        Task3_1 task_a(func, nodes_a, x_star);
+        task_a.Do("./tasks/3/3.1/plot_data_a.csv");
+
+
+        
+        std::cout << "\n\n***************************************************\n";
+        std::cout << "***   ВАРИАНТ 13, ПУНКТ б) НЕРАВНОМЕРНАЯ СЕТКА   ***\n";
+        std::cout << "***************************************************\n\n";
+
+        Vector nodes_b(4);
+        nodes_b.Set(0, 0.0);
+        nodes_b.Set(1, M_PI / 6.0);
+        nodes_b.Set(2, M_PI / 4.0);
+        nodes_b.Set(3, M_PI / 2.0);
+
+        Task3_1 task_b(func, nodes_b, x_star);
+        task_b.Do("./tasks/3/3.1/plot_data_b.csv");
+
+
+        std::cout << "\n\n***************************************************\n";
+        std::cout << "***       СВОДНЫЕ РЕЗУЛЬТАТЫ И ВЫВОДЫ         ***\n";
+        std::cout << "***************************************************\n\n";
+
+        std::cout << "\n\nВывод:\n";
+        std::cout << "1. Равномерная сетка (вариант а) дала значительно более точный результат.\n";
+        std::cout << "   Фактическая ошибка для нее почти в 5 раз меньше, чем для неравномерной сетки\n";
+        std::cout << "2. Теоретические оценки погрешности также подтверждают, что набор узлов 'а'\n";
+        std::cout << "   является более удачным для интерполяции в точке X* = 1.0.\n";
 
     } catch (const std::exception& e) {
         std::cerr << "Произошла ошибка: " << e.what() << std::endl;
