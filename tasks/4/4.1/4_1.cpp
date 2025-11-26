@@ -61,20 +61,27 @@ private:
     }
     // 2. Неявный метод Эйлера (с печатью)
     void SolveEulerImplicit() {
-        PrintTableHeader("2. Неявный метод Эйлера (метод простых итераций)");
-        double x=x0, y=y0, z=z0; int n=static_cast<int>(round((xk-x0)/h));
-        for (int k=0; k<=n; ++k) {
-            PrintTableRow(k,x,y,z); if(k==n)break;
+        PrintTableHeader("2. Неявный метод Эйлера (решен итерациями)");
+        double x = x0, y = y0, z = z0; int n = static_cast<int>(round((xk-x0)/h));
+        for (int k = 0; k <= n; ++k) {
+            if (k == n) { PrintTableRow(k,x,y,z); break; }
+            
             double next_x = x + h;
             // Прогноз
             double y_next = y + h*fy(x,y,z);
             double z_next = z + h*fz(x,y,z);
-            // Итерации для СИСТЕМЫ. На каждой итерации обновляем оба значения.
-            for(int i=0; i<10; ++i) {
-                double y_iter_old = y_next; // Сохраняем, чтобы z использовал тот же y
+            // Итерации для поиска y_{k+1} и z_{k+1}
+            for(int i=0;i<10;++i){
+                double y_iter_old = y_next;
                 y_next = y + h * fy(next_x, y_next, z_next);
                 z_next = z + h * fz(next_x, y_iter_old, z_next);
             }
+
+            // ВЫЧИСЛЯЕМ ПРИРАЩЕНИЯ ПОСТФАКТУМ
+            double dy = y_next - y;
+            double dz = z_next - z;
+            PrintTableRow(k, x, y, z, dy, dz); // Печатаем с приращениями
+            
             y = y_next; z = z_next; x = next_x;
         }
     }
@@ -95,20 +102,27 @@ private:
     // 4. Неявный Эйлер-Коши (с печатью)
     void SolveEulerCauchyIterative() {
         PrintTableHeader("4, 5. Метод Эйлера-Коши с итерационной обработкой");
-        double x=x0, y=y0, z=z0; int n=static_cast<int>(round((xk-x0)/h));
-        for (int k=0; k<=n; ++k) {
-            PrintTableRow(k,x,y,z); if(k==n)break;
+        double x = x0, y = y0, z = z0; int n = static_cast<int>(round((xk-x0)/h));
+        for (int k = 0; k <= n; ++k) {
+            if (k == n) { PrintTableRow(k,x,y,z); break; }
+
             double next_x = x + h;
             // Прогноз
             double y_next = y + h*fy(x,y,z);
             double z_next = z + h*fz(x,y,z);
             double fy0 = fy(x,y,z), fz0 = fz(x,y,z);
-            // Итерации
-            for(int i=0; i<10; ++i) {
-                double y_iter_old = y_next; // Сохраняем для консистентности
-                y_next = y + (h/2.0)*(fy0 + fy(next_x, y_next, z_next));
-                z_next = z + (h/2.0)*(fz0 + fz(next_x, y_iter_old, z_next));
+            // Итерации для поиска y_{k+1} и z_{k+1}
+            for(int i=0; i<10; ++i){
+                double y_iter_old = y_next;
+                y_next = y + (h/2.0) * (fy0 + fy(next_x, y_next, z_next));
+                z_next = z + (h/2.0) * (fz0 + fz(next_x, y_iter_old, z_next));
             }
+
+            // ВЫЧИСЛЯЕМ ПРИРАЩЕНИЯ ПОСТФАКТУМ
+            double dy = y_next - y;
+            double dz = z_next - z;
+            PrintTableRow(k, x, y, z, dy, dz); // Печатаем с приращениями
+            
             y = y_next; z = z_next; x = next_x;
         }
     }
@@ -173,31 +187,67 @@ private:
     }
     // 9. Метод Адамса (явный) (с печатью)
     void SolveAdamsExplicit() {
-        PrintTableHeader("9. Метод Адамса (явный, 4-го порядка)");
-        int n=static_cast<int>(round((xk-x0)/h)); if(n<4){std::cout<<"Мало шагов для метода Адамса\n"; return;}
-        Vector xh(n+1), yh(n+1), zh(n+1), fyh(n+1), fzh(n+1); RungeKuttaStartup(xh,yh,zh,fyh,fzh,h);
-        for(int k=0;k<4;++k) PrintTableRow(k,xh.Get(k),yh.Get(k),zh.Get(k));
-        for(int k=3;k<n;++k){
-            double y_n=yh.Get(k)+(h/24.)*(55*fyh.Get(k)-59*fyh.Get(k-1)+37*fyh.Get(k-2)-9*fyh.Get(k-3));
-            double z_n=zh.Get(k)+(h/24.)*(55*fzh.Get(k)-59*fzh.Get(k-1)+37*fzh.Get(k-2)-9*fzh.Get(k-3));
-            double x_n=xh.Get(k)+h; yh.Set(k+1,y_n); zh.Set(k+1,z_n); xh.Set(k+1,x_n);
-            fyh.Set(k+1,fy(x_n,y_n,z_n)); fzh.Set(k+1,fz(x_n,y_n,z_n)); PrintTableRow(k+1,x_n,y_n,z_n);
+        PrintTableHeader("9. Метод Адамса (явный, 4-го порядка)"); // Используем PrintTableRow без dy, dz
+        int n=static_cast<int>(round((xk-x0)/h)); if(n<4){std::cout<<"Мало шагов\n"; return;}
+        Vector xh(n+1), yh(n+1), zh(n+1), fyh(n+1), fzh(n+1);
+        RungeKuttaStartup(xh, yh, zh, fyh, fzh, h);
+
+        for(int k=0; k<4; ++k) PrintTableRow(k, xh.Get(k), yh.Get(k), zh.Get(k));
+
+        for(int k=3; k<n; ++k) {
+            // Получаем значения y_k и z_k из истории
+            double current_y = yh.Get(k);
+            double current_z = zh.Get(k);
+
+            // Считаем y_{k+1} и z_{k+1}
+            double next_y = current_y + (h/24.0) * (55*fyh.Get(k) - 59*fyh.Get(k-1) + 37*fyh.Get(k-2) - 9*fyh.Get(k-3));
+            double next_z = current_z + (h/24.0) * (55*fzh.Get(k) - 59*fzh.Get(k-1) + 37*fzh.Get(k-2) - 9*fzh.Get(k-3));
+            double next_x = xh.Get(k) + h;
+
+            // Сохраняем в историю
+            yh.Set(k+1, next_y);
+            zh.Set(k+1, next_z);
+            xh.Set(k+1, next_x);
+            
+            // ВАЖНО: Считаем ОБЕ производные от НОВЫХ, согласованных (y,z)
+            fyh.Set(k+1, fy(next_x, next_y, next_z));
+            fzh.Set(k+1, fz(next_x, next_y, next_z));
+            
+            PrintTableRow(k+1, next_x, next_y, next_z);
         }
     }
-    // 10. Метод Адамса (предиктор-корректор) (с печатью)
+
+    // 10. Метод Адамса (предиктор-корректор)
     void SolveAdamsPredictorCorrector() {
         PrintTableHeader("10. Метод Адамса-Бэшфортса-Моултона");
-        int n=static_cast<int>(round((xk-x0)/h)); if(n<4){std::cout<<"Мало шагов для метода Адамса\n"; return;}
-        Vector xh(n+1), yh(n+1), zh(n+1), fyh(n+1), fzh(n+1); RungeKuttaStartup(xh,yh,zh,fyh,fzh,h);
-        for(int k=0;k<4;++k) PrintTableRow(k,xh.Get(k),yh.Get(k),zh.Get(k));
-        for(int k=3;k<n;++k){
-            double y_p=yh.Get(k)+(h/24.)*(55*fyh.Get(k)-59*fyh.Get(k-1)+37*fyh.Get(k-2)-9*fyh.Get(k-3));
-            double z_p=zh.Get(k)+(h/24.)*(55*fzh.Get(k)-59*fzh.Get(k-1)+37*fzh.Get(k-2)-9*fzh.Get(k-3));
-            double x_n=xh.Get(k)+h; double fy_p=fy(x_n,y_p,z_p), fz_p=fz(x_n,y_p,z_p);
-            double y_c=yh.Get(k)+(h/24.)*(9*fy_p+19*fyh.Get(k)-5*fyh.Get(k-1)+fyh.Get(k-2));
-            double z_c=zh.Get(k)+(h/24.)*(9*fz_p+19*fzh.Get(k)-5*fzh.Get(k-1)+fzh.Get(k-2));
-            xh.Set(k+1,x_n); yh.Set(k+1,y_c); zh.Set(k+1,z_c);
-            fyh.Set(k+1,fy(x_n,y_c,z_c)); fzh.Set(k+1,fz(x_n,y_c,z_c)); PrintTableRow(k+1,x_n,y_c,z_c);
+        int n=static_cast<int>(round((xk-x0)/h)); if(n<4){std::cout<<"Мало шагов\n"; return;}
+        Vector xh(n+1), yh(n+1), zh(n+1), fyh(n+1), fzh(n+1);
+        RungeKuttaStartup(xh, yh, zh, fyh, fzh, h);
+
+        for(int k=0; k<4; ++k) PrintTableRow(k, xh.Get(k), yh.Get(k), zh.Get(k));
+        
+        for(int k=3; k<n; ++k) {
+            // Предиктор
+            double y_p = yh.Get(k) + (h/24.0)*(55*fyh.Get(k) - 59*fyh.Get(k-1) + 37*fyh.Get(k-2) - 9*fyh.Get(k-3));
+            double z_p = zh.Get(k) + (h/24.0)*(55*fzh.Get(k) - 59*fzh.Get(k-1) + 37*fzh.Get(k-2) - 9*fzh.Get(k-3));
+            double next_x = xh.Get(k) + h;
+
+            // ВАЖНО: Считаем ОБЕ производные от предсказанных, согласованных (y_p, z_p)
+            double fy_p = fy(next_x, y_p, z_p);
+            double fz_p = fz(next_x, y_p, z_p);
+
+            // Корректор
+            double y_c = yh.Get(k) + (h/24.0)*(9*fy_p + 19*fyh.Get(k) - 5*fyh.Get(k-1) + fyh.Get(k-2));
+            double z_c = zh.Get(k) + (h/24.0)*(9*fz_p + 19*fzh.Get(k) - 5*fzh.Get(k-1) + fzh.Get(k-2));
+
+            // Сохраняем в историю
+            xh.Set(k+1, next_x);
+            yh.Set(k+1, y_c);
+            zh.Set(k+1, z_c);
+            fyh.Set(k+1, fy(next_x, y_c, z_c));
+            fzh.Set(k+1, fz(next_x, y_c, z_c));
+            
+            PrintTableRow(k+1, next_x, y_c, z_c);
         }
     }
 
