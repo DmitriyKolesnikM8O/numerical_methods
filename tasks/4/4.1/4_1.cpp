@@ -51,61 +51,124 @@ private:
     void SolveEulerExplicit() {
         PrintTableHeader("1. Явный метод Эйлера");
         double x = x0, y = y0, z = z0; int n = static_cast<int>(round((xk-x0)/h));
-        for (int k=0; k<=n; ++k) { PrintTableRow(k,x,y,z); if(k==n)break; y+=h*fy(x,y,z); z+=h*fz(x,y,z); x+=h; }
+        for (int k = 0; k <= n; ++k) {
+            if (k == n) { PrintTableRow(k,x,y,z); break; }
+            double dy = h * fy(x,y,z);
+            double dz = h * fz(x,y,z);
+            PrintTableRow(k, x, y, z, dy, dz);
+            y += dy; z += dz; x += h;
+        }
     }
     // 2. Неявный метод Эйлера (с печатью)
     void SolveEulerImplicit() {
-        PrintTableHeader("2. Неявный метод Эйлера (решен итерациями)");
+        PrintTableHeader("2. Неявный метод Эйлера (метод простых итераций)");
         double x=x0, y=y0, z=z0; int n=static_cast<int>(round((xk-x0)/h));
-        for (int k=0; k<=n; ++k) { PrintTableRow(k,x,y,z); if(k==n)break; double next_x=x+h; double y_next=y+h*fy(x,y,z), z_next=z+h*fz(x,y,z);
-            for(int i=0;i<10;++i){ y_next=y+h*fy(next_x,y_next,z_next); z_next=z+h*fz(next_x,y_next,z_next); }
-            y=y_next; z=z_next; x=next_x;
+        for (int k=0; k<=n; ++k) {
+            PrintTableRow(k,x,y,z); if(k==n)break;
+            double next_x = x + h;
+            // Прогноз
+            double y_next = y + h*fy(x,y,z);
+            double z_next = z + h*fz(x,y,z);
+            // Итерации для СИСТЕМЫ. На каждой итерации обновляем оба значения.
+            for(int i=0; i<10; ++i) {
+                double y_iter_old = y_next; // Сохраняем, чтобы z использовал тот же y
+                y_next = y + h * fy(next_x, y_next, z_next);
+                z_next = z + h * fz(next_x, y_iter_old, z_next);
+            }
+            y = y_next; z = z_next; x = next_x;
         }
     }
     // 3. Метод Эйлера-Коши (с печатью)
     void SolveEulerCauchy() {
         PrintTableHeader("3. Метод Эйлера-Коши (явный Предиктор-Корректор)");
-        double x=x0, y=y0, z=z0; int n=static_cast<int>(round((xk-x0)/h));
-        for (int k=0; k<=n; ++k) { PrintTableRow(k,x,y,z); if(k==n)break; double next_x=x+h; double y_pred=y+h*fy(x,y,z), z_pred=z+h*fz(x,y,z);
-            y+=(h/2.0)*(fy(x,y,z)+fy(next_x,y_pred,z_pred)); z+=(h/2.0)*(fz(x,y,z)+fz(next_x,y_pred,z_pred)); x=next_x;
+        double x = x0, y = y0, z = z0; int n = static_cast<int>(round((xk-x0)/h));
+        for (int k = 0; k <= n; ++k) {
+            if (k == n) { PrintTableRow(k,x,y,z); break; }
+            double next_x = x + h;
+            double y_pred = y + h * fy(x,y,z), z_pred = z + h * fz(x,y,z);
+            double dy = (h/2.0) * (fy(x,y,z) + fy(next_x, y_pred, z_pred));
+            double dz = (h/2.0) * (fz(x,y,z) + fz(next_x, y_pred, z_pred));
+            PrintTableRow(k, x, y, z, dy, dz);
+            y += dy; z += dz; x = next_x;
         }
     }
     // 4. Неявный Эйлер-Коши (с печатью)
     void SolveEulerCauchyIterative() {
         PrintTableHeader("4, 5. Метод Эйлера-Коши с итерационной обработкой");
         double x=x0, y=y0, z=z0; int n=static_cast<int>(round((xk-x0)/h));
-        for (int k=0; k<=n; ++k) { PrintTableRow(k,x,y,z); if(k==n)break; double next_x=x+h; double y_next=y+h*fy(x,y,z), z_next=z+h*fz(x,y,z);
-            double fy0=fy(x,y,z), fz0=fz(x,y,z);
-            for(int i=0; i<10; ++i){ y_next=y+(h/2.0)*(fy0+fy(next_x,y_next,z_next)); z_next=z+(h/2.0)*(fz0+fz(next_x,y_next,z_next)); }
-            y=y_next; z=z_next; x=next_x;
+        for (int k=0; k<=n; ++k) {
+            PrintTableRow(k,x,y,z); if(k==n)break;
+            double next_x = x + h;
+            // Прогноз
+            double y_next = y + h*fy(x,y,z);
+            double z_next = z + h*fz(x,y,z);
+            double fy0 = fy(x,y,z), fz0 = fz(x,y,z);
+            // Итерации
+            for(int i=0; i<10; ++i) {
+                double y_iter_old = y_next; // Сохраняем для консистентности
+                y_next = y + (h/2.0)*(fy0 + fy(next_x, y_next, z_next));
+                z_next = z + (h/2.0)*(fz0 + fz(next_x, y_iter_old, z_next));
+            }
+            y = y_next; z = z_next; x = next_x;
         }
     }
     // 6. Улучшенный метод Эйлера (с печатью)
-    void SolveEulerImprovedMidpoint() {
+   void SolveEulerImprovedMidpoint() {
         PrintTableHeader("6. Первый улучшенный метод Эйлера");
-        double x=x0, y=y0, z=z0; int n=static_cast<int>(round((xk-x0)/h));
-        for (int k=0; k<=n; ++k) { PrintTableRow(k,x,y,z); if(k==n)break; double mid_x=x+h/2.0; double y_mid=y+(h/2.0)*fy(x,y,z), z_mid=z+(h/2.0)*fz(x,y,z);
-            y+=h*fy(mid_x,y_mid,z_mid); z+=h*fz(mid_x,y_mid,z_mid); x+=h;
+        double x = x0, y = y0, z = z0; int n = static_cast<int>(round((xk-x0)/h));
+        for (int k = 0; k <= n; ++k) {
+            if (k == n) { PrintTableRow(k,x,y,z); break; }
+            double mid_x = x + h/2.0;
+            double y_mid = y + (h/2.0) * fy(x,y,z);
+            double z_mid = z + (h/2.0) * fz(x,y,z);
+            double dy = h * fy(mid_x, y_mid, z_mid);
+            double dz = h * fz(mid_x, y_mid, z_mid);
+            PrintTableRow(k, x, y, z, dy, dz);
+            y += dy; z += dz; x += h;
         }
     }
     // 7. Метод Рунге-Кутты 3-го порядка (с печатью)
     void SolveRK3() {
         PrintTableHeader("7. Метод Рунге-Кутты 3-го порядка");
-        double x=x0, y=y0, z=z0; int n=static_cast<int>(round((xk-x0)/h));
-        for (int k=0; k<=n; ++k) { PrintTableRow(k,x,y,z); if(k==n)break;
-            double K1=h*fy(x,y,z), L1=h*fz(x,y,z); double K2=h*fy(x+h/3.,y+K1/3.,z+L1/3.), L2=h*fz(x+h/3.,y+K1/3.,z+L1/3.);
+        double x = x0, y = y0, z = z0; int n = static_cast<int>(round((xk-x0)/h));
+        for (int k=0; k<=n; ++k) {
+            if (k==n) { PrintTableRow(k,x,y,z); break; }
+            double K1=h*fy(x,y,z), L1=h*fz(x,y,z);
+            double K2=h*fy(x+h/3.,y+K1/3.,z+L1/3.), L2=h*fz(x+h/3.,y+K1/3.,z+L1/3.);
             double K3=h*fy(x+2.*h/3.,y+2.*K2/3.,z+2.*L2/3.), L3=h*fz(x+2.*h/3.,y+2.*K2/3.,z+2.*L2/3.);
-            y+=(K1+3.*K3)/4.; z+=(L1+3.*L3)/4.; x+=h;
+            double dy = (K1 + 3.*K3)/4.;
+            double dz = (L1 + 3.*L3)/4.;
+            PrintTableRow(k, x, y, z, dy, dz);
+            y += dy; z += dz; x += h;
         }
     }
     // 8. Метод Рунге-Кутты 4-го порядка (с печатью)
     void SolveRK4() {
         PrintTableHeader("8. Метод Рунге-Кутты 4-го порядка");
         double x=x0, y=y0, z=z0; int n=static_cast<int>(round((xk-x0)/h));
-        for (int k=0; k<=n; ++k) { PrintTableRow(k,x,y,z); if(k==n)break;
-            double K1=h*fy(x,y,z), L1=h*fz(x,y,z), K2=h*fy(x+h/2,y+K1/2,z+L1/2), L2=h*fz(x+h/2,y+K1/2,z+L1/2);
-            double K3=h*fy(x+h/2,y+K2/2,z+L2/2), L3=h*fz(x+h/2,y+K2/2,z+L2/2); double K4=h*fy(x+h,y+K3,z+L3), L4=h*fz(x+h,y+K3,z+L3);
-            y+=(K1+2*K2+2*K3+K4)/6.; z+=(L1+2*L2+2*L3+L4)/6.; x+=h;
+        for (int k=0; k<=n; ++k) {
+            if (k == n) { // Для последней строки просто печатаем результат
+                PrintTableRow(k, x, y, z);
+                break;
+            }
+            
+            // Вычисляем коэффициенты
+            double K1=h*fy(x,y,z), L1=h*fz(x,y,z);
+            double K2=h*fy(x+h/2,y+K1/2,z+L1/2), L2=h*fz(x+h/2,y+K1/2,z+L1/2);
+            double K3=h*fy(x+h/2,y+K2/2,z+L2/2), L3=h*fz(x+h/2,y+K2/2,z+L2/2);
+            double K4=h*fy(x+h,y+K3,z+L3), L4=h*fz(x+h,y+K3,z+L3);
+            
+            // Вычисляем ПРИРАЩЕНИЯ dy и dz
+            double dy = (K1 + 2*K2 + 2*K3 + K4) / 6.0;
+            double dz = (L1 + 2*L2 + 2*L3 + L4) / 6.0;
+            
+            // Печатаем строку, включая dy и dz
+            PrintTableRow(k, x, y, z, dy, dz);
+
+            // Обновляем значения для следующего шага
+            y += dy;
+            z += dz;
+            x += h;
         }
     }
     // 9. Метод Адамса (явный) (с печатью)
@@ -301,15 +364,25 @@ private:
     // Вспомогательные функции (без изменений)
     void PrintTableHeader(const std::string& title) {
         std::cout << "\n\n--- " << title << " ---\n";
-        std::cout << std::setw(5) << "k" << std::setw(12) << "x_k" << std::setw(15) << "y_k" << std::setw(15) << "dy_k"
+        std::cout << std::setw(5) << "k" << std::setw(12) << "x_k" << std::setw(15) << "y_k" << std::setw(15) << "z_k"
+                  << std::setw(15) << "dy_k" << std::setw(15) << "dz_k" // <-- ДОБАВЛЕНЫ СТОЛБЦЫ
                   << std::setw(15) << "y_ист" << std::setw(15) << "epsilon_k" << "\n";
-        std::cout << "----------------------------------------------------------------------------------------\n";
+        std::cout << "------------------------------------------------------------------------------------------------------\n"; // Линия стала длиннее
     }
 
     void PrintTableRow(int k, double x, double y, double z) {
         double exact_y = y_exact(x);
         double error = std::abs(exact_y - y);
         std::cout << std::setw(5) << k << std::setw(12) << x << std::setw(15) << y << std::setw(15) << z
+                  << std::setw(15) << " " << std::setw(15) << " " // Пустые поля для dy, dz
+                  << std::setw(15) << exact_y << std::setw(15) << error << "\n";
+    }
+
+    void PrintTableRow(int k, double x, double y, double z, double dy, double dz) {
+        double exact_y = y_exact(x);
+        double error = std::abs(exact_y - y);
+        std::cout << std::setw(5) << k << std::setw(12) << x << std::setw(15) << y << std::setw(15) << z
+                  << std::setw(15) << dy << std::setw(15) << dz // <-- ВЫВОДИМ dy и dz
                   << std::setw(15) << exact_y << std::setw(15) << error << "\n";
     }
 
@@ -381,3 +454,90 @@ int main() {
     }
     return 0;
 }
+
+//Методичка 1 функция
+// int main() {
+//     try {
+//         // Наша основная функция: y' = (y+x)^2
+//         // Параметр z игнорируется, так как уравнение первого порядка.
+//         ODEFunc func_y = [](double x, double y, double /*z_ignored*/) {
+//             return (y + x) * (y + x);
+//         };
+        
+//         // Так как уравнение первого порядка, второй функции z у нас нет.
+//         // Создаем "пустышку", которая всегда возвращает 0.
+//         ODEFunc func_z = [](double, double, double) {
+//             return 0.0;
+//         };
+        
+//         ExactSolutionFunc exact_sol = [](double x) { 
+//             return tan(x) - x; 
+//         };
+
+//         double x_start = 0.0;
+//         double y_start = 0.0;
+//         double z_start = 0.0; // Начальное условие для нашей фиктивной переменной z
+//         // Интервал [0, 0.5] с шагом h=0.1
+//         double x_end = 0.5;
+//         double h_step = 0.1;
+
+//         // 4. Создаем и запускаем задачу
+//         Task_4_1 task(func_y, func_z, exact_sol, x_start, y_start, z_start, x_end, h_step);
+        
+//         // ВАЖНО: нужно будет обновить метод PrintInitialData() внутри класса,
+//         // чтобы он выводил правильное описание для этой новой задачи.
+//         task.Do();
+
+//     } catch (const std::exception& e) {
+//         std::cerr << "\nПроизошла ошибка: " << e.what() << std::endl;
+//         return 1;
+//     }
+//     return 0;
+// }
+
+// Методичка 2 функция
+// int main() {
+//     try {
+//         // --- Настройка для Примера 4.5 из методички ---
+
+//         // 1. Сводим уравнение (x^2+1)y'' = 2xy' к системе.
+//         //    y'' = (2*x*y') / (x^2 + 1)
+//         //    Вводим замену z = y', получаем систему:
+//         //    y' = z
+//         //    z' = (2*x*z) / (x^2 + 1)
+
+//         // 2. Определяем правые части системы
+//         ODEFunc func_y = [](double x, double y, double z) {
+//             return z; // y' = z
+//         };
+//         ODEFunc func_z = [](double x, double y, double z) {
+//             return (2.0 * x * z) / (x * x + 1.0); // z' = (2*x*z)/(x^2+1)
+//         };
+        
+//         // 3. Точное решение из примера
+//         ExactSolutionFunc exact_sol = [](double x) { 
+//             return pow(x, 3) + 3.0 * x + 1.0; 
+//         };
+
+//         // 4. Параметры задачи из примера
+//         // Начальные условия: y(0) = 1, y'(0) = 3
+//         double x_start = 0.0;
+//         double y_start = 1.0;
+//         double z_start = 3.0;
+//         // Интервал [0, 1] с шагом h=0.2
+//         double x_end = 1.0;
+//         double h_step = 0.2;
+
+//         // 5. Создаем и запускаем задачу
+//         Task_4_1 task(func_y, func_z, exact_sol, x_start, y_start, z_start, x_end, h_step);
+        
+//         // ВАЖНО: Не забудь обновить метод PrintInitialData() внутри класса,
+//         // чтобы он выводил правильное описание для этой задачи.
+//         task.Do();
+
+//     } catch (const std::exception& e) {
+//         std::cerr << "\nПроизошла ошибка: " << e.what() << std::endl;
+//         return 1;
+//     }
+//     return 0;
+// }
