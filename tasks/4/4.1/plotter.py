@@ -51,41 +51,47 @@ plt.rcParams['font.size'] = 12           # Размер шрифта по умо
 
 # --- 3. ПОСТРОЕНИЕ ГРАФИКОВ ---
 
-# == ГРАФИК 1: Сравнение решений с точным (методы низкого порядка) ==
+# == ГРАФИК 1: Погрешности методов низкого порядка ==
 fig1, ax1 = plt.subplots()
-ax1.plot(x_k, y_exact, 'k-', linewidth=3, label='Точное решение')
+ax1.axhline(0, color='black', linestyle='-', linewidth=1.5, label='Ноль (идеальное решение)') # Линия нуля для ориентира
 low_order_methods = ['euler_exp', 'euler_imp', 'euler_cauchy', 'euler_cauchy_iter', 'euler_imp_mid']
 for method in low_order_methods:
-    ax1.plot(x_k, y_results[method], 'o--', markersize=4, label=method_names[method])
-ax1.set_title('Сравнение решений: Методы низкого порядка (1 и 2)', fontsize=16)
+    # Вычисляем погрешность для каждого метода
+    error = np.array(y_results[method]) - y_exact
+    ax1.plot(x_k, error, 'o--', markersize=4, label=method_names[method])
+ax1.set_title('Графики погрешностей: Методы низкого порядка (1 и 2)', fontsize=16)
 ax1.set_xlabel('x', fontsize=12)
-ax1.set_ylabel('y(x)', fontsize=12)
+ax1.set_ylabel('Погрешность (y_k - y_ист)', fontsize=12)
 ax1.legend()
 ax1.grid(True)
 
-# == ГРАФИК 2: Сравнение решений с точным (методы высокого порядка) ==
+# == ГРАФИК 2: Погрешности методов высокого порядка ==
 fig2, ax2 = plt.subplots()
-ax2.plot(x_k, y_exact, 'k-', linewidth=4, label='Точное решение')
+ax2.axhline(0, color='black', linestyle='-', linewidth=1.5, label='Ноль (идеальное решение)')
 high_order_methods = ['rk3', 'rk4', 'adams_exp', 'adams_pc']
 for method in high_order_methods:
-    ax2.plot(x_k, y_results[method], 'o--', markersize=5, label=method_names[method])
-ax2.set_title('Сравнение решений: Методы высокого порядка (3 и 4)', fontsize=16)
+    # Вычисляем погрешность для каждого метода
+    error = np.array(y_results[method]) - y_exact
+    ax2.plot(x_k, error, 'o--', markersize=5, label=method_names[method])
+ax2.set_title('Графики погрешностей: Методы высокого порядка (3 и 4)', fontsize=16)
 ax2.set_xlabel('x', fontsize=12)
-ax2.set_ylabel('y(x)', fontsize=12)
+ax2.set_ylabel('Погрешность (y_k - y_ист)', fontsize=12)
 ax2.legend()
 ax2.grid(True)
 
-# == ГРАФИК 3: Рост абсолютной ошибки (логарифмическая шкала) ==
+# == ГРАФИК 3: Рост абсолютной ошибки (логарифмическая шкала) - ОСТАЕТСЯ БЕЗ ИЗМЕНЕНИЙ ==
+# Этот график уже показывает то, что нужно, и делает это очень наглядно.
 fig3, ax3 = plt.subplots()
 for method_key, method_name in method_names.items():
     error = np.abs(np.array(y_results[method_key]) - y_exact)
     ax3.plot(x_k, error, 'o--', markersize=4, label=method_name)
-ax3.set_yscale('log') # Логарифмическая шкала ОБЯЗАТЕЛЬНА для сравнения
+ax3.set_yscale('log')
 ax3.set_title('Рост абсолютной погрешности |y_ист - y_k|', fontsize=16)
 ax3.set_xlabel('x', fontsize=12)
 ax3.set_ylabel('Погрешность (log шкала)', fontsize=12)
 ax3.legend(loc='upper left', fontsize=10)
 ax3.grid(True, which='both')
+
 
 # == ГРАФИК 4: Сравнение оценки по Рунге-Ромбергу с истинной ошибкой ==
 labels = list(final_errors.keys())
@@ -106,6 +112,28 @@ ax4.set_xticks(x_pos)
 ax4.set_xticklabels(labels, rotation=45, ha="right")
 ax4.legend()
 ax4.grid(True, which='both', axis='y')
+
+
+# == НОВЫЙ ГРАФИК 5: "Под микроскопом" - сравнение точных методов в конце отрезка ==
+fig5, ax5 = plt.subplots()
+
+# Строим точное решение, но делаем его более гладким (больше точек)
+x_smooth = np.linspace(x_k[-3], x_k[-1], 300) # Берем последние 3 точки, т.е. [0.8, 1.0]
+y_smooth_exact = np.cos(x_smooth)**3 + np.sin(x_smooth)*(1 + 2*np.cos(x_smooth)**2)
+ax5.plot(x_smooth, y_smooth_exact, 'k-', linewidth=4, alpha=0.8, label='Точное решение')
+
+# Выбираем только самые точные методы для сравнения
+most_accurate_methods = ['rk4', 'adams_pc']
+for method in most_accurate_methods:
+    # Берем только последние 3 точки из результатов
+    ax5.plot(x_k[-3:], y_results[method][-3:], 'o--', markersize=6, label=method_names[method])
+
+ax5.set_title('Сравнение точных методов на отрезке [0.8, 1.0]', fontsize=16)
+ax5.set_xlabel('x', fontsize=12)
+ax5.set_ylabel('y(x)', fontsize=12)
+ax5.legend()
+ax5.grid(True)
+
 
 # Показываем все созданные графики
 plt.tight_layout()
